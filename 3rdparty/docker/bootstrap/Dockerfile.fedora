@@ -26,8 +26,8 @@ RUN echo "set mouse=" >> ~/.vimrc
 
 ENV GIT_BUILDTOOLS="https://review.haiku-os.org/buildtools"
 ENV GIT_HAIKU="https://review.haiku-os.org/haiku"
-ENV GIT_HAIKUPORTER="https://github.com/haikuports/haikuporter.git"
-ENV GIT_HAIKUPORTS="https://github.com/haikuports/haikuports.git"
+ENV GIT_HAIKUPORTER="https://github.com/enricopesce/haikuporter.git"
+ENV GIT_HAIKUPORTS="https://github.com/enricopesce/haikuports.git"
 ENV GIT_HAIKUPORTS_CROSS="https://github.com/haikuports/haikuports.cross.git"
 
 ADD prep.sh /usr/local/bin/prep

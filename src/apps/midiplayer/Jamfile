@@ -2,19 +2,28 @@ SubDir HAIKU_TOP src apps midiplayer ;
 
 UsePrivateHeaders interface ;
 
-Application MidiPlayer :
-	MidiPlayerApp.cpp 
-	MidiPlayerWindow.cpp 
-	ScopeView.cpp
-	SynthBridge.cpp
-	: be midi midi2 [ TargetLibsupc++ ] localestub
-	: MidiPlayer.rdef
-;
+local architectureObject ;
+for architectureObject in [ MultiArchSubDirSetup ] {
+	on $(architectureObject) {
+		if ! [ FIsBuildFeatureEnabled fluidlite ] {
+			continue ;
+		}
 
-DoCatalogs MidiPlayer :
-	x-vnd.Haiku-MidiPlayer
-	:
-	MidiPlayerApp.cpp 
-	MidiPlayerWindow.cpp 
-	ScopeView.cpp
-;
+		Application MidiPlayer :
+			MidiPlayerApp.cpp
+			MidiPlayerWindow.cpp
+			ScopeView.cpp
+			SynthBridge.cpp
+			: be midi midi2 [ TargetLibsupc++ ] localestub
+			: MidiPlayer.rdef
+		;
+
+		DoCatalogs MidiPlayer :
+			x-vnd.Haiku-MidiPlayer
+			:
+			MidiPlayerApp.cpp
+			MidiPlayerWindow.cpp
+			ScopeView.cpp
+		;
+	}
+}

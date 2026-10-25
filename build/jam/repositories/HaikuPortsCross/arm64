@@ -38,33 +38,12 @@ BootstrapPackageRepository HaikuPortsCross
 	python3.10_bootstrap-3.10.21-1
 	sed_bootstrap-4.9-1
 	texinfo_bootstrap-7.2-1
-	zlib_bootstrap-1.2.13-1
-	zlib_bootstrap_devel-1.2.13-1
+	zlib_bootstrap-1.3.2-1
+	zlib_bootstrap_devel-1.3.2-1
 	:
 	# repository architecture packages (stage 2)
 	:
 	# source packages
-	bash_bootstrap
-	binutils_bootstrap
-	bison_bootstrap
-	coreutils_bootstrap
-	curl_bootstrap
-	expat_bootstrap
-	findutils_bootstrap
-	flex_bootstrap
-	freetype_bootstrap
-	gawk_bootstrap
-	gcc_bootstrap
-	grep_bootstrap
-	less_bootstrap
-	libffi_bootstrap
-	m4_bootstrap
-	make_bootstrap
-	ncurses6_bootstrap
-	python3.10_bootstrap
-	sed_bootstrap
-	texinfo_bootstrap
-	zlib_bootstrap
 	:
 	# debuginfo packages
 	;

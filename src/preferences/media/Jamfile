@@ -2,20 +2,29 @@ SubDir HAIKU_TOP src preferences media ;
 
 UsePrivateHeaders media midi shared ;
 
-Application Media :
-	Media.cpp
-	MediaIcons.cpp
-	MediaListItem.cpp
-	MediaViews.cpp
-	MediaWindow.cpp
-	MidiSettingsView.cpp
-	: media midi be localestub [ TargetLibsupc++ ]
-	: media.rdef
-	;
+local architectureObject ;
+for architectureObject in [ MultiArchSubDirSetup ] {
+	on $(architectureObject) {
+		if ! [ FIsBuildFeatureEnabled fluidlite ] {
+			continue ;
+		}
 
-DoCatalogs Media
-	: x-vnd.Haiku-Media
-	: MediaViews.cpp
-	  MediaWindow.cpp
-	  MidiSettingsView.cpp
-;
+		Application Media :
+			Media.cpp
+			MediaIcons.cpp
+			MediaListItem.cpp
+			MediaViews.cpp
+			MediaWindow.cpp
+			MidiSettingsView.cpp
+			: media midi be localestub [ TargetLibsupc++ ]
+			: media.rdef
+		;
+
+		DoCatalogs Media
+			: x-vnd.Haiku-Media
+			: MediaViews.cpp
+			  MediaWindow.cpp
+			  MidiSettingsView.cpp
+		;
+	}
+}
