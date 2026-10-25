@@ -120,7 +120,7 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentBase ] {
 
 # DevelopmentMin
 if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ]
-		&& ( $(TARGET_ARCH) = x86 || $(TARGET_ARCH) = x86_64 ) {
+		&& ( $(TARGET_ARCH) = x86 || $(TARGET_ARCH) = x86_64 || $(TARGET_ARCH) = arm64 ) {
 	AddPackageFilesToHaikuImage _packages_
 		:
 		haiku_devel.hpkg
