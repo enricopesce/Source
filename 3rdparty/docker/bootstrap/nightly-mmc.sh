@@ -10,7 +10,6 @@ if [ -e "$WORKPATH/$BUILD_DIR_NAME" ]; then
 	exit 1
 fi
 export BUILD_DIR_NAME
-export HAIKU_DONT_FETCH_PACKAGES=0
 prep
 crosstools
 bootstrap
