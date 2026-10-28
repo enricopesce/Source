@@ -9,23 +9,13 @@ RUN apt-get install -y git nasm autoconf automake autopoint texinfo \
 	flex bison gawk build-essential unzip wget zip less zlib1g-dev \
 	libzstd-dev libcurl4-openssl-dev genisoimage libtool \
 	mtools gcc-multilib u-boot-tools util-linux device-tree-compiler bc attr
-
-# GCC requirements
-# Python 3.12 is provided by the base image for HaikuPorter compatibility.
-# zlib requirements
-RUN apt-get install -y cmake
-# ICU requirements
-RUN apt-get install -y pkg-config
-# texinfo requirements
-RUN apt-get install -y libncurses-dev
-
-# Developer sundries (that won't impact bootstrap)
+RUN apt-get install -y cmake pkg-config libncurses-dev
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc
 
-ENV GIT_BUILDTOOLS="https://review.haiku-os.org/buildtools"
-ENV GIT_HAIKU="https://review.haiku-os.org/haiku"
+ENV GIT_BUILDTOOLS="https://github.com/haiku/buildtools.git"
+ENV GIT_HAIKU="https://github.com/enricopesce/Source.git"
 ENV GIT_HAIKUPORTER="https://github.com/enricopesce/haikuporter.git"
 ENV GIT_HAIKUPORTS="https://github.com/enricopesce/haikuports.git"
 ENV GIT_HAIKUPORTS_CROSS="https://github.com/haikuports/haikuports.cross.git"
@@ -33,6 +23,8 @@ ENV GIT_HAIKUPORTS_CROSS="https://github.com/haikuports/haikuports.cross.git"
 ADD prep.sh /usr/local/bin/prep
 ADD crosstools.sh /usr/local/bin/crosstools
 ADD bootstrap.sh /usr/local/bin/bootstrap
+ADD nightly-mmc.sh /usr/local/bin/nightly-mmc
+ADD sources.lock /usr/local/share/haiku-bootstrap/sources.lock
 ADD haikuports_chroot.sh /usr/local/bin/haikuports_chroot
 ADD haikuports_build.sh /usr/local/bin/haikuports_build
 

@@ -2,9 +2,11 @@ SubDir HAIKU_TOP src add-ons kernel debugger disasm ;
 
 UsePrivateKernelHeaders ;
 
-KernelAddon <kdebug>disasm :
-	disasm.cpp
-	: disasm_arch.a
-	;
+if $(TARGET_KERNEL_ARCH_DIR) = arm || $(TARGET_KERNEL_ARCH_DIR) = m68k || $(TARGET_KERNEL_ARCH_DIR) = ppc || $(TARGET_KERNEL_ARCH_DIR) = x86 {
+	KernelAddon <kdebug>disasm :
+		disasm.cpp
+		: disasm_arch.a
+		;
 
-SubInclude HAIKU_TOP src add-ons kernel debugger disasm $(TARGET_KERNEL_ARCH_DIR) ;
+	SubInclude HAIKU_TOP src add-ons kernel debugger disasm $(TARGET_KERNEL_ARCH_DIR) ;
+}

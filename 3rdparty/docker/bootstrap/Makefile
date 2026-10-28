@@ -1,23 +1,31 @@
-ENGINE=docker
-VER=bullseye-slim-1
-#ENGINE=podman
+ENGINE ?= podman
+IMAGE ?= localhost/renkuos-bootstrap-python312:nightly-mmc
+WORKDIR ?= $(HOME)/haiku-nightly-mmc-work
+TARGET_ARCH ?= arm64
 
-# Example mounting source code directory into container
-# (lets you "work on the code used to bootstrap" a bit easier)
-SOURCES=$(HOME)/Code
-EXTRA=-v $(SOURCES)/haiku:/work/src/haiku -v $(SOURCES)/buildtools:/work/src/buildtools
+.PHONY: image prep crosstools bootstrap nightly-mmc enter clean-work
 
-default:
-	${ENGINE} build . --no-cache -t docker.io/haiku/bootstrap:${VER}
-clean:
-	${ENGINE} ps -q --filter=ancestor=docker.io/haiku/bootstrap:${VER} | xargs -I {} ${ENGINE} kill {}
-	${ENGINE} ps -a -q --filter=ancestor=docker.io/haiku/bootstrap:${VER} | xargs -I {} ${ENGINE} rm {}
-	${ENGINE} volume rm bootstrap_work
-prep:
-	${ENGINE} run -v bootstrap_work:/work:exec ${EXTRA} docker.io/haiku/bootstrap:${VER} prep
-crosstools:
-	${ENGINE} run -e TARGET_ARCH=$(TARGET_ARCH) -v bootstrap_work:/work:exec ${EXTRA} docker.io/haiku/bootstrap:${VER} crosstools
-bootstrap:
-	${ENGINE} run -e TARGET_ARCH=$(TARGET_ARCH) -v bootstrap_work:/work:exec ${EXTRA} docker.io/haiku/bootstrap:${VER} bootstrap
-enter:
-	${ENGINE} run -it -e TARGET_ARCH=$(TARGET_ARCH) -v bootstrap_work:/work:exec ${EXTRA} docker.io/haiku/bootstrap:${VER} /bin/bash -l
+image:
+	$(ENGINE) build . -t $(IMAGE)
+
+prep: image
+	mkdir -p "$(WORKDIR)"
+	$(ENGINE) run --rm -v "$(WORKDIR):/work:exec" $(IMAGE) prep
+
+crosstools: image
+	mkdir -p "$(WORKDIR)"
+	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) crosstools
+
+bootstrap: image
+	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) bootstrap
+
+nightly-mmc: image
+	mkdir -p "$(WORKDIR)"
+	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) nightly-mmc
+
+enter: image
+	$(ENGINE) run --rm -it -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) /bin/bash -l
+
+# This removes source checkouts, intermediate builds, and generated images.
+clean-work:
+	test -n "$(WORKDIR)" && test "$(WORKDIR)" != "/" && rm -rf "$(WORKDIR)"

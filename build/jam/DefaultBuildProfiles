@@ -138,10 +138,15 @@ rule DefineDefaultBuildProfiles
 			HAIKU_ROOT_USER_REAL_NAME ?= "Yourself" ;
 			AddGroupToHaikuImage party : 101 : user sshd ;
 			HAIKU_IMAGE_HOST_NAME ?= shredder ;
-			if $(DEBUG) != 0 {
-				HAIKU_IMAGE_SIZE ?= 850 ;
+			if $(HAIKU_PACKAGING_ARCHS) = arm64 {
+				# The ARM64 nightly image includes the development toolchain.
+				HAIKU_IMAGE_SIZE ?= 8000 ;
+			} else {
+				if $(DEBUG) != 0 {
+					HAIKU_IMAGE_SIZE ?= 850 ;
+				}
+				HAIKU_IMAGE_SIZE ?= 650 ;
 			}
-			HAIKU_IMAGE_SIZE ?= 650 ;
 			HAIKU_NIGHTLY_BUILD = 1 ;
 
 			AddHaikuImageSystemPackages
@@ -162,12 +167,29 @@ rule DefineDefaultBuildProfiles
 					xz_utils_x86@secondary_x86
 				}@
 				;
+			if $(HAIKU_PACKAGING_ARCHS) = arm64 {
+				# Include the native ARM64 compiler, source control, build tools, and generators.
+				AddHaikuImageSystemPackages
+					binutils gcc gcc_fortran git make m4 perl python3.10 file mpfr mpc texinfo openssl3_devel libjpeg_turbo_devel libpng16_devel zlib_devel zstd_devel jam mawk mkdepend nasm patch libiconv_devel
+					autoconf automake bison flex pkgconfig
+					cmake ninja gdb libtool libarchive
+				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
+					;
+				AddPackageFilesToHaikuImage system packages : haiku_devel.hpkg
+					: nameFromMetaInfo ;
+			}
+
 			AddHaikuImageSourcePackages
 				nano
 				p7zip
 				;
 
-			AddOptionalHaikuImagePackages Development Git ;
+			if $(HAIKU_PACKAGING_ARCHS) = arm64 {
+				# ARM64 development packages are installed above from local fork HPKGs.
+				AddOptionalHaikuImagePackages Git ;
+			} else {
+				AddOptionalHaikuImagePackages Development Git ;
+			}
 
 			# WebPositive can only built for x86_gcc2, x86 and x86_64
 			if $(HAIKU_PACKAGING_ARCHS) in x86_gcc2 x86 x86_64 {

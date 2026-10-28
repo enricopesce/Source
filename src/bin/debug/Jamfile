@@ -13,7 +13,9 @@ Application kernel_debugger : kernel_debugger.cpp
 ;
 
 
-HaikuSubInclude ltrace ;
+if $(TARGET_ARCH) = arm || $(TARGET_ARCH) = m68k || $(TARGET_ARCH) = ppc || $(TARGET_ARCH) = x86 || $(TARGET_ARCH) = x86_64 {
+	HaikuSubInclude ltrace ;
+}
 HaikuSubInclude profile ;
 HaikuSubInclude scheduling_recorder ;
 HaikuSubInclude strace ;

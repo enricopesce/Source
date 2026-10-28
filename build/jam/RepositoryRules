@@ -272,9 +272,10 @@ rule RepositoryCache repoCache : repoInfo : packageFiles
 
 actions RepositoryCache1
 {
-	$(HOST_ADD_BUILD_COMPATIBILITY_LIB_DIR) \
-	$(2[1]) create -q $(2[2-])
-	mv $(1:B=repo) $(1)
+    $(HOST_ADD_BUILD_COMPATIBILITY_LIB_DIR) \
+    packages=`printf '%s\n' $(2[2-]) | grep '\.hpkg$' | sed '/_bootstrap-[^/]*\.hpkg$/d' | tr '\n' ' '`; \
+    $(2[1]) create -q $(2[2]) $packages
+    mv $(1:B=repo) $(1)
 }
 
 

@@ -332,6 +332,17 @@ rule C++HeaderDirectories architecture
 		c++HeaderDirs = [ FDirName $(HAIKU_TOP) headers cpp ] ;
 	} else if $(PLATFORM) = bootstrap_stage0 {
 		# Currently, no c++-headers are needed for stage0 of the boostrap.
+	} else if $(HAIKU_IS_BOOTSTRAP) = 1 && $(HAIKU_GCC_LIB_DIR_$(architecture)) {
+		# The bootstrap GCC syslibs package may not have been produced yet.
+		# Use the matching cross compiler headers until it is available.
+		local gccVersionParts = [ Match ".*/gcc/([^/]*)/([^/]*)" : $(HAIKU_GCC_LIB_DIR_$(architecture)) ] ;
+		local gccVersion = $(gccVersionParts[2]) ;
+		local gccCppHeaderDir = [ FDirName $(HAIKU_GCC_LIB_DIR_$(architecture))
+			../../../../$(HAIKU_GCC_MACHINE_$(architecture))/include/c++/$(gccVersion) ] ;
+		c++HeaderDirs = $(gccCppHeaderDir)
+			[ FDirName $(gccCppHeaderDir) $(HAIKU_GCC_MACHINE_$(architecture)) ]
+			[ FDirName $(gccCppHeaderDir) backward ]
+			[ FDirName $(gccCppHeaderDir) ext ] ;
 	} else {
 		local baseDir = [
 			BuildFeatureAttribute gcc_syslibs_devel : c++-headers : path
@@ -358,7 +369,8 @@ rule GccHeaderDirectories architecture
 	local gccHeaderDirs ;
 	if $(architecture) = x86_gcc2 {
 		gccHeaderDirs = [ FDirName $(HAIKU_TOP) headers build gcc-2.95.3 ] ;
-	} else if $(PLATFORM) = bootstrap_stage0 {
+	} else if $(PLATFORM) = bootstrap_stage0
+		|| $(HAIKU_IS_BOOTSTRAP) = 1 && $(HAIKU_GCC_LIB_DIR_$(architecture)) {
 		gccHeaderDirs =
 			[ FDirName $(HAIKU_GCC_LIB_DIR_$(architecture)) include ]
 			[ FDirName $(HAIKU_GCC_LIB_DIR_$(architecture)) include-fixed ]

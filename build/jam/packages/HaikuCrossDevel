@@ -91,6 +91,13 @@ for stage in _stage0 _stage1 "" {
 			: [ FDirName $(HAIKU_TOP) headers compatibility $(headerDir) ] ;
 	}
 
+	# Private Haiku headers are required by system ports such as GCC's
+	# sanitizers and must match the target source tree.
+	if $(stage) != _stage0 {
+		CopyDirectoryToPackage $(developCrossHeadersDirTokens)
+			: [ FDirName $(HAIKU_TOP) headers private ] ;
+	}
+
 	if $(stage) != _stage0 {
 		# cpp headers
 		if $(HAIKU_CC_IS_LEGACY_GCC_$(architecture)) = 1 {

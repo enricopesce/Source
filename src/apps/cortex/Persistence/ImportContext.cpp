@@ -91,8 +91,8 @@ void ImportContext::reportWarning(
 	err << pText;
 	if(p) {
 		err << "\n         (line " <<
-			(uint32)XML_GetCurrentLineNumber(p) << ", column " <<
-			(uint32)XML_GetCurrentColumnNumber(p) << ", element '" <<
+			(uint32)XML_GetCurrentLineNumber64(p) << ", column " <<
+			(uint32)XML_GetCurrentColumnNumber64(p) << ", element '" <<
 			(element() ? element() : "(none)") << "')\n";
 	} else
 		err << "\n";
@@ -110,8 +110,8 @@ void ImportContext::reportError(
 	err << pText;
 	if(p) {
 		err << "\n             (line " <<
-			(uint32)XML_GetCurrentLineNumber(p) << ", column " <<
-			(uint32)XML_GetCurrentColumnNumber(p) << ", element '" <<
+			(uint32)XML_GetCurrentLineNumber64(p) << ", column " <<
+			(uint32)XML_GetCurrentColumnNumber64(p) << ", element '" <<
 			(element() ? element() : "(none)") << "')\n";
 	} else
 		err << "\n";
