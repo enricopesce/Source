@@ -44,6 +44,7 @@ BootstrapPackageRepository HaikuPortsCross
 	# repository architecture packages (stage 2)
 	:
 	# source packages
+	zlib_bootstrap
 	:
 	# debuginfo packages
 	;

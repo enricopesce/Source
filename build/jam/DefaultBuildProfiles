@@ -249,7 +249,6 @@ rule DefineDefaultBuildProfiles
 				grep
 				haikuporter
 				less
-				libedit
 				libffi
 				m4
 				make
@@ -266,10 +265,13 @@ rule DefineDefaultBuildProfiles
 			# them when building ports on the bootstrap system.
 			AddHaikuImageSystemPackages
 				freetype_devel
-				libedit_devel
 				ncurses6_devel
 				zlib_devel
 			;
+
+			if $(HAIKU_PACKAGING_ARCHS) != arm64 {
+				AddHaikuImageSystemPackages libedit libedit_devel ;
+			}
 
 			# secondary architecture packages
 			local architectureObject ;
