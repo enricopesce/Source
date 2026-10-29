@@ -6,6 +6,6 @@ REF_HAIKU=8af37742a33fb77869f72a8fa399e844457ef651
 GIT_HAIKUPORTER=https://github.com/enricopesce/haikuporter.git
 REF_HAIKUPORTER=695edc87aa74a3c011f73e1ee4605ec381981868
 GIT_HAIKUPORTS=https://github.com/enricopesce/haikuports.git
-REF_HAIKUPORTS=16b1682eed12caa457f378d939841df7ae66b4f9
+REF_HAIKUPORTS=5af394a4a46106695bc00edb83c3d9c7c267c51a
 GIT_HAIKUPORTS_CROSS=https://github.com/haikuports/haikuports.cross.git
 REF_HAIKUPORTS_CROSS=a6e2c64aeef25529ba38502f8ffb5ad085e55997
