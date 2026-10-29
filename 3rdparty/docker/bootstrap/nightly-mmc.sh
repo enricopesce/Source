@@ -340,7 +340,7 @@ if [ ${#python314_packages[@]} -ne 1 ]; then
 fi
 haikuporter_package="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
 HAIKU_LOCAL_RUNTIME_PACKAGES_FILE="$GENERATED/local-runtime-packages.jam"
-HAIKU_IMAGE_BASE_PACKAGES="git libiconv libjpeg_turbo libpng16 openssl3 zlib zstd"
+HAIKU_IMAGE_BASE_PACKAGES="bzip2 file git libiconv libjpeg_turbo libpng16 openssl3 xz_utils zlib zstd"
 export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
 local_runtime_roots=("${netsurf_packages[0]}" "$haikuporter_package" "${python314_packages[0]}")
 {
