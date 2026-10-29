@@ -240,7 +240,12 @@ build_haikuports_source_package
 # been built before it assembles the ARM64 nightly image.
 if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
 	echo "Preparing host build tool nsgenbind"
-	build_port nsgenbind ""
+	nsgenbind_source_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
+		-path '*/sources/nsgenbind-*/Makefile' -print -quit)
+	if ! compgen -G "$PORT_PACKAGES/nsgenbind-*-arm64.hpkg" >/dev/null || \
+		[ -z "$nsgenbind_source_makefile" ]; then
+		build_port nsgenbind ""
+	fi
 	build_host_nsgenbind
 	echo "Building selected ARM64 GUI browser (NetSurf)"
 	build_port netsurf ""
