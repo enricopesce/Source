@@ -27,20 +27,22 @@ if [ -x "$CROSS_TOOLS/bin/aarch64-unknown-haiku-gfortran" ] && [ -x "$CROSS_TOOL
 	echo "ARM64 cross-GFortran is already available: $CROSS_TOOLS/bin/aarch64-unknown-haiku-gfortran"
 	exit 0
 fi
-rm -rf "$BUILD" "$SYSROOT"
-mkdir -p "$BUILD" "$SYSROOT"
-for package in "$CROSS_DEVEL" "$RUNTIME" "$DEVEL"; do
-	"$PACKAGE" extract -C "$SYSROOT" "$package"
-done
+mkdir -p "$BUILD"
+if [ ! -e "$SYSROOT/.cross-devel-extracted" ]; then
+	rm -rf "$SYSROOT"
+	mkdir -p "$SYSROOT"
+	for package in "$CROSS_DEVEL" "$RUNTIME" "$DEVEL"; do
+		"$PACKAGE" extract -C "$SYSROOT" "$package"
+	done
+	touch "$SYSROOT/.cross-devel-extracted"
+fi
 export PATH="$CROSS_TOOLS/bin:$PATH"
 export LD_LIBRARY_PATH="$GENERATED/objects/linux/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cd "$BUILD"
-"$WORKPATH/src/buildtools/gcc/configure" \
-	--prefix="$CROSS_TOOLS" --target=aarch64-unknown-haiku \
-	--disable-nls --disable-shared --with-system-zlib --enable-languages=c,c++,fortran \
-	--enable-lto --enable-frame-pointer --enable-__cxa-atexit --enable-threads=posix \
-	--with-default-libstdcxx-abi=gcc4-compatible --with-sysroot="$SYSROOT" \
-	--disable-maintainer-mode --disable-libgomp --disable-libatomic --disable-multilib
+if [ ! -e .configured ]; then
+	"$WORKPATH/src/buildtools/gcc/configure" 		--prefix="$CROSS_TOOLS" --target=aarch64-unknown-haiku 		--disable-nls --disable-shared --with-system-zlib --enable-languages=c,c++,fortran 		--enable-lto --enable-frame-pointer --enable-__cxa-atexit --enable-threads=posix 		--with-default-libstdcxx-abi=gcc4-compatible --with-sysroot="$SYSROOT" 		--disable-maintainer-mode --disable-libgomp --disable-libatomic --disable-multilib
+	touch .configured
+fi
 make -j4 all-host
 make -j4 all-gcc
 make -j4 install-host install-gcc
