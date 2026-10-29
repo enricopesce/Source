@@ -77,6 +77,8 @@ ARG BUILD_PACKAGING_VERSION=26.2
 ARG BUILD_PACKAGING_WHEEL_SHA256=5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e
 ARG BUILD_TOMLI_VERSION=2.0.1
 ARG BUILD_TOMLI_WHEEL_SHA256=939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc
+ARG BUILD_FRONTEND_VERSION=1.5.0
+ARG BUILD_FRONTEND_WHEEL_SHA256=13f3eecb844759ab66efec90ca17639bbf14dc06cb2fdf37a9010322d9c50a6f
 RUN set -eux; \
     printf "%s\n" \
         "installer==${BUILD_INSTALLER_VERSION} --hash=sha256:${BUILD_INSTALLER_WHEEL_SHA256}" \
@@ -84,11 +86,12 @@ RUN set -eux; \
         "pyproject-hooks==${BUILD_PYPROJECT_HOOKS_VERSION} --hash=sha256:${BUILD_PYPROJECT_HOOKS_WHEEL_SHA256}" \
         "packaging==${BUILD_PACKAGING_VERSION} --hash=sha256:${BUILD_PACKAGING_WHEEL_SHA256}" \
         "tomli==${BUILD_TOMLI_VERSION} --hash=sha256:${BUILD_TOMLI_WHEEL_SHA256}" \
+        "build==${BUILD_FRONTEND_VERSION} --hash=sha256:${BUILD_FRONTEND_WHEEL_SHA256}" \
         > /tmp/haiku-host-build-requirements.txt; \
     python3 -m pip install --disable-pip-version-check --no-cache-dir --no-compile --no-deps --require-hashes --target=/opt/python3.10/lib/python3.10/site-packages -r /tmp/haiku-host-build-requirements.txt; \
     python3 -m pip install --disable-pip-version-check --no-cache-dir --no-compile --no-deps --require-hashes --target=/opt/python3.14/lib/python3.14/site-packages -r /tmp/haiku-host-build-requirements.txt; \
-    python3.10 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}' and version('flit-core') == '${BUILD_FLIT_CORE_VERSION}' and version('pyproject-hooks') == '${BUILD_PYPROJECT_HOOKS_VERSION}' and version('packaging') == '${BUILD_PACKAGING_VERSION}' and version('tomli') == '${BUILD_TOMLI_VERSION}'"; \
-    python3.14 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}' and version('flit-core') == '${BUILD_FLIT_CORE_VERSION}' and version('pyproject-hooks') == '${BUILD_PYPROJECT_HOOKS_VERSION}' and version('packaging') == '${BUILD_PACKAGING_VERSION}' and version('tomli') == '${BUILD_TOMLI_VERSION}'"
+    python3.10 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}' and version('flit-core') == '${BUILD_FLIT_CORE_VERSION}' and version('pyproject-hooks') == '${BUILD_PYPROJECT_HOOKS_VERSION}' and version('packaging') == '${BUILD_PACKAGING_VERSION}' and version('tomli') == '${BUILD_TOMLI_VERSION}' and version('build') == '${BUILD_FRONTEND_VERSION}'"; \
+    python3.14 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}' and version('flit-core') == '${BUILD_FLIT_CORE_VERSION}' and version('pyproject-hooks') == '${BUILD_PYPROJECT_HOOKS_VERSION}' and version('packaging') == '${BUILD_PACKAGING_VERSION}' and version('tomli') == '${BUILD_TOMLI_VERSION}' and version('build') == '${BUILD_FRONTEND_VERSION}'"
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc
