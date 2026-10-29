@@ -1,8 +1,13 @@
-FROM docker.io/library/python:3.12-slim-bookworm
+FROM docker.io/library/python:3.12-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70
 
 ENV DEBIAN_FRONTEND="noninteractive"
 
-RUN apt-get update
+ARG DEBIAN_SNAPSHOT=20261029T000000Z
+RUN sed -i \
+	-e "s|http://deb.debian.org/debian-security|https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|" \
+	-e "s|http://deb.debian.org/debian|https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|" \
+	/etc/apt/sources.list.d/debian.sources \
+	&& apt-get -o Acquire::Check-Valid-Until=false update
 
 # Base Haiku requirements
 RUN apt-get install -y git nasm autoconf automake autopoint texinfo \

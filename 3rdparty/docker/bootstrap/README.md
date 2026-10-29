@@ -1,57 +1,65 @@
 # Haiku bootstrap in a container
 
-This container isolates the Linux host tools used to bootstrap Haiku. The
-ARM64 nightly-mmc recipe below uses pinned revisions of the RenkuOS source,
-HaikuPorter, HaikuPorts, buildtools, and HaikuPortsCross repositories.
+This directory contains the build definition for the ARM64 nightly-mmc image.
+The container isolates Linux host tools. Haiku, HaikuPorter, HaikuPorts,
+buildtools, and HaikuPortsCross revisions are pinned in sources.lock.
 
 ## Requirements
 
-- Podman (the default engine) or Docker (set ENGINE=docker)
-- GNU make
-- An internet connection
-- Substantial free disk space for a clean ARM64 bootstrap and package build
+- Linux x86_64 host with Podman (default) or Docker, and GNU make
+- Internet access for the pinned Git revisions and source archives
+- Enough free disk space for the toolchain, package cache, and generated image
 
-Building the container image installs its declared Debian build dependencies
-inside the image. The host does not need those packages installed.
+The container base image is pinned by digest, and Debian packages come from
+the fixed Debian snapshot in the Dockerfile. Build dependencies are installed
+inside the container image; the host does not need those packages.
 
 ## Reproduce the ARM64 nightly image
 
-Run these commands from this directory:
+Run from this directory in a clean checkout. Record the build-definition
+revision with git rev-parse HEAD; each successful image also gets a
+haiku-mmc.image.build-info file listing that revision and the exact source
+revisions used.
 
-    make image
-    make nightly-mmc
+    make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-work"
 
-The command starts from pinned source commits in sources.lock, builds the
-cross-toolchain and bootstrap image, then runs @nightly-mmc. In a fresh
-workspace, Jam invokes HaikuPorter for packages missing from the local build
-repository; HaikuPorter builds the requested packages and their dependencies
-from the pinned HaikuPorts source tree.
+nightly-mmc builds the container image once, checks out the commits in
+sources.lock, builds the cross-toolchain and bootstrap packages, then runs
+@nightly-mmc. Missing profile packages and their dependencies are built from
+the pinned HaikuPorts checkout. The generated image is written to
+$WORKDIR/generated.arm64/haiku-mmc.image.
 
-The generated image is written to
-$HOME/haiku-nightly-mmc-work/generated.arm64/haiku-mmc.image.
-To repeat the build from a clean workspace, first choose a new WORKDIR:
+To repeat from clean sources, select a new workspace:
 
     make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-clean"
 
-To continue an interrupted build without rebuilding its source checkouts,
-cross-toolchain, or bootstrap image, use the existing workspace with:
+## Continue an interrupted build
 
-    make nightly-mmc RESUME=1 WORKDIR="$HOME/haiku-nightly-mmc-work"
+Use the existing workspace and rerun the last incomplete stage. Targets reuse
+files already produced in generated.arm64:
 
-The build container provides a deterministic host-side uudecode helper for
-firmware recipes that need to decode files while cross-building ARM64 packages.
+- make prep WORKDIR=... checks out the pinned repositories.
+- make crosstools WORKDIR=... builds the cross-toolchain.
+- make bootstrap WORKDIR=... continues Jam's bootstrap build.
+- make build-cross-fortran WORKDIR=... builds the cross-Fortran compiler.
+- After those stages complete, make nightly-mmc RESUME=1 WORKDIR=... resumes
+  package creation and image generation without repeating them.
 
-make clean-work removes the selected workspace, including source checkouts,
-intermediate builds, and images. Use it only when that data can be discarded.
+RESUME=1 requires the source checkouts and bootstrap outputs to exist. Use it
+only after the toolchain and bootstrap stages completed. The profile build
+stores its Jam and HaikuPorter logs in the selected workspace.
 
-The source lock pins the snapshots required by the ARM64 profile. Updating any
-fork requires updating its commit ID in sources.lock.
+make clean-work WORKDIR=... removes source checkouts, intermediate builds,
+package caches, and generated images. Use it only when that data can be
+discarded.
 
-## Generic bootstrap commands
+## Lower-level commands
 
-The lower-level steps remain available:
+    make prep
+    make crosstools TARGET_ARCH=arm64
+    make bootstrap TARGET_ARCH=arm64
+    make build-cross-fortran TARGET_ARCH=arm64
+    make enter TARGET_ARCH=arm64
 
-1. make prep checks out the pinned sources.
-2. TARGET_ARCH=arm64 make crosstools builds the cross-toolchain.
-3. TARGET_ARCH=arm64 make bootstrap creates the bootstrap image.
-4. TARGET_ARCH=arm64 make enter enters the build environment.
+When updating a fork, change its immutable commit in sources.lock and commit
+the build definition with the update.

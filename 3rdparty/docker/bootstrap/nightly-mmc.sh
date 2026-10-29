@@ -154,4 +154,19 @@ done
 
 IMAGE="$GENERATED/haiku-mmc.image"
 if [ ! -s "$IMAGE" ]; then echo "Build completed without expected image: $IMAGE"; exit 1; fi
+manifest="$IMAGE.build-info"
+manifest_temporary="$manifest.part"
+{
+	printf 'format=1\nprofile=nightly-mmc\ntarget_arch=%s\n' "$TARGET_ARCH"
+	printf 'build_driver_revision=%s\n' "${BUILD_DRIVER_REV:-unrecorded}"
+	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do
+		printf 'source_%s_revision=%s\n' "$source_repo" "$(git -C "$WORKPATH/src/$source_repo" rev-parse HEAD)"
+	done
+	printf 'haikuports_cross_patch_sha256=%s\n' \
+		"$(sha256sum /usr/local/share/haiku-bootstrap/patches/arm64-bootstrap-cross-recipes.patch | cut -d' ' -f1)"
+	printf 'mwx_firmware_sha256=%s\n' "$mwx_firmware_sha256"
+	printf 'image_size_bytes=%s\n' "$(stat -c %s "$IMAGE")"
+} > "$manifest_temporary"
+mv -f "$manifest_temporary" "$manifest"
 echo "ARM64 nightly image: $IMAGE"
+echo "Build provenance: $manifest"
