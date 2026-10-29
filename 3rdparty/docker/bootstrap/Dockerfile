@@ -11,7 +11,7 @@ RUN sed -i \
 
 # Base Haiku requirements
 RUN apt-get install -y git nasm autoconf automake autoconf-archive autopoint texinfo \
-	flex bison gperf gawk build-essential unzip wget zip less zlib1g-dev \
+	flex bison gperf ruby gawk build-essential unzip wget zip less zlib1g-dev \
 	libzstd-dev libcurl4-openssl-dev genisoimage libtool \
 	mtools gcc-multilib u-boot-tools util-linux device-tree-compiler bc attr
 RUN apt-get install -y cmake pkg-config libncurses-dev \
