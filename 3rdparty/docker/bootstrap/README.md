@@ -100,6 +100,7 @@ The ARM64 development package selection is defined in
 
 The ARM64 profile also requests the graphical NetSurf browser, built from the pinned HaikuPorts checkout and its dependency closure. The recipe declares all architectures; a successful ARM64 build is verified by completing this profile.
 NetSurf needs `nsgenbind` while building. Since the HaikuPorts package is a target ARM64 executable and cannot run on the Linux builder, the driver builds a host-native copy from the same pinned `nsgenbind` and NetSurf build-system sources using the container's GCC, Bison, and Flex. It records the host triplet, GCC version, and helper hash in the image build-info.
+For `nightly-mmc`, the pinned fork is packaged at `/boot/system/data/haikuports` as a read-only Git checkout with `.git` metadata. Copy it to writable storage (for example, `cp -a /boot/system/data/haikuports ~/haikuports`) before changing recipes; its `origin` points to the fork. The Linux Podman builder stays outside the image, so this checkout supplies the repository but does not make the image able to rebuild the OS by itself.
 
 The selected packages and their transitive dependencies are built from the
 HaikuPorts revision in `sources.lock` when they are missing, then included in

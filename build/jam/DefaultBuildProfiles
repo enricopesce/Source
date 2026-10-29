@@ -176,6 +176,9 @@ rule DefineDefaultBuildProfiles
 				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
 					;
 				AddHaikuImageSystemPackages netsurf ;
+				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
+					AddHaikuImageSystemPackages haikuports_source ;
+				}
 				AddPackageFilesToHaikuImage system packages : haiku_devel.hpkg
 					: nameFromMetaInfo ;
 			}

@@ -178,6 +178,40 @@ build_port() {
 	unset "BUILDING_PORTS[$port_name]"
 	build_port "$port_name" "$required_output" "$((depth + 1))"
 }
+build_haikuports_source_package() {
+	local source_revision package_file package_root package_contents package_info
+	source_revision=$(git -C "$WORKPATH/src/haikuports" rev-parse HEAD)
+	package_file="$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg"
+	package_root="$GENERATED/haikuports-source-package"
+	package_contents="$package_root/boot/system/data/haikuports"
+	package_info="$GENERATED/haikuports-source.PackageInfo"
+	rm -rf "$package_root"
+	rm -f "$package_file"
+	mkdir -p "$package_contents" "$GENERATED/download"
+	git -C "$WORKPATH/src/haikuports" archive --format=tar "$source_revision" \
+		| tar -xf - -C "$package_contents"
+	cp -a "$WORKPATH/src/haikuports/.git" "$package_contents/.git"
+	if [ "$(git -C "$package_contents" rev-parse HEAD)" != "$source_revision" ]; then
+		echo "Packaged HaikuPorts checkout does not match pinned revision $source_revision" >&2
+		return 1
+	fi
+	cat > "$package_info" <<EOF
+name haikuports_source
+version 1.0.0-1
+architecture any
+summary "Pinned HaikuPorts source repository"
+description "HaikuPorts checkout at $source_revision. Copy it to writable storage before editing."
+packager "RenkuOS ARM64 build"
+vendor "RenkuOS"
+licenses { "MIT" }
+copyrights { "2002-2017 The HaikuPorts Project" }
+provides { haikuports_source = 1.0.0 }
+requires { haiku }
+EOF
+	package create -q -C "$package_root" -i "$package_info" "$package_file"
+	rm -f "$package_info"
+	echo "Packaged HaikuPorts Git checkout at $source_revision"
+}
 build_host_nsgenbind() {
 	local nsgenbind_makefile buildsystem_makefile nsgenbind_source buildsystem_dir host_triplet build_dir
 	nsgenbind_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
@@ -201,6 +235,7 @@ build_host_nsgenbind() {
 	cp -f "$nsgenbind_source/$build_dir/nsgenbind" "$WORKPATH/bin/nsgenbind"
 	chmod 0755 "$WORKPATH/bin/nsgenbind"
 }
+build_haikuports_source_package
 # Jam treats unavailable image packages as warnings, so ensure NetSurf has
 # been built before it assembles the ARM64 nightly image.
 if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
@@ -250,6 +285,7 @@ manifest_temporary="$manifest.part"
 	printf 'host_build_machine=%s\n' "$(/usr/bin/gcc -dumpmachine)"
 	printf 'host_gcc_version=%s\n' "$(/usr/bin/gcc -dumpfullversion)"
 	printf 'host_nsgenbind_sha256=%s\n' "$(sha256sum "$WORKPATH/bin/nsgenbind" | cut -d' ' -f1)"
+	printf 'haikuports_source_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg" | cut -d' ' -f1)"
 	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do
 		printf 'source_%s_revision=%s\n' "$source_repo" "$(git -C "$WORKPATH/src/$source_repo" rev-parse HEAD)"
 	done
