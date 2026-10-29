@@ -66,3 +66,21 @@ discarded.
 
 When updating a fork, change its immutable commit in sources.lock and commit
 the build definition with the update.
+
+## ARM64 development image contents
+
+The ARM64 development package selection is defined in
+[DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by
+`nightly-mmc`. It includes `binutils`, `gcc`, `gcc_fortran`, `git`, `make`,
+`m4`, `perl`, `python3.10`, `file`, `mpfr`, `mpc`, `texinfo`, `jam`, `mawk`,
+`mkdepend`, `nasm`, `patch`, `libiconv_devel`, `openssl3_devel`,
+`libjpeg_turbo_devel`, `libpng16_devel`, `zlib_devel`, `zstd_devel`,
+`autoconf`, `automake`, `bison`, `flex`, `pkgconfig`, `cmake`, `ninja`, `gdb`,
+`libtool`, `libarchive`, `libarchive_devel`, `libuv_devel`, `rhash_devel`,
+`isl_devel` and `xxhash_devel`, plus `haiku_devel.hpkg`.
+
+The selected packages and their transitive dependencies are built from the
+HaikuPorts revision in `sources.lock` when they are missing, then included in
+the generated image. This is a cross-build on Linux x86_64; QEMU is not part
+of image generation. The build provenance is recorded beside the image in
+`haiku-mmc.image.build-info`.
