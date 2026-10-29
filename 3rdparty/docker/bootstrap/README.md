@@ -44,7 +44,9 @@ files already produced in generated.arm64:
 - make build-cross-fortran WORKDIR=... builds the cross-Fortran compiler.
 - After those stages complete, make nightly-mmc RESUME=1 WORKDIR=... resumes
   package creation and image generation. It repairs the cross-Fortran sysroot
-  link HaikuPorter expects, without rebuilding an existing compiler.
+  link HaikuPorter expects, without rebuilding an existing compiler. To resume
+  an interrupted port compile from its existing objects, add
+  `HAIKU_RESUME_BUILD=1`.
 
 RESUME=1 requires the source checkouts and bootstrap outputs to exist. Use it
 only after the toolchain and bootstrap stages completed. The profile build

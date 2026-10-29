@@ -3,6 +3,7 @@ IMAGE ?= localhost/renkuos-bootstrap-python312:nightly-mmc
 WORKDIR ?= $(HOME)/haiku-nightly-mmc-work
 TARGET_ARCH ?= arm64
 RESUME ?= 0
+HAIKU_RESUME_BUILD ?= 0
 BUILD_DRIVER_REV ?= $(shell git rev-parse --verify HEAD 2>/dev/null || echo unversioned)
 
 .PHONY: check-build-files image prep crosstools bootstrap build-cross-fortran nightly-mmc enter clean-work
@@ -31,7 +32,7 @@ build-cross-fortran: image
 
 nightly-mmc: image
 	mkdir -p "$(WORKDIR)"
-	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -e RESUME=$(RESUME) -e BUILD_DRIVER_REV=$(BUILD_DRIVER_REV) -v "$(WORKDIR):/work:exec" $(IMAGE) nightly-mmc
+	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -e RESUME=$(RESUME) -e HAIKU_RESUME_BUILD=$(HAIKU_RESUME_BUILD) -e BUILD_DRIVER_REV=$(BUILD_DRIVER_REV) -v "$(WORKDIR):/work:exec" $(IMAGE) nightly-mmc
 
 enter: image
 	$(ENGINE) run --rm -it -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) /bin/bash -l
