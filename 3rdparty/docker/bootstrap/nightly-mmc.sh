@@ -178,9 +178,35 @@ build_port() {
 	unset "BUILDING_PORTS[$port_name]"
 	build_port "$port_name" "$required_output" "$((depth + 1))"
 }
+build_host_nsgenbind() {
+	local nsgenbind_makefile buildsystem_makefile nsgenbind_source buildsystem_dir host_triplet build_dir
+	nsgenbind_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
+		-path '*/sources/nsgenbind-*/Makefile' -print -quit)
+	buildsystem_makefile=$(find "$PORT_REPOSITORY/dev-build/netsurf_buildsystem" -type f \
+		-path '*/sources/buildsystem-*/makefiles/Makefile.top' -print -quit)
+	if [ -z "$nsgenbind_makefile" ] || [ -z "$buildsystem_makefile" ]; then
+		echo "Cannot locate the pinned nsgenbind and NetSurf build-system sources" >&2
+		return 1
+	fi
+	nsgenbind_source=${nsgenbind_makefile%/Makefile}
+	buildsystem_dir=${buildsystem_makefile%/makefiles/Makefile.top}
+	host_triplet=$(/usr/bin/gcc -dumpmachine)
+	build_dir="build-${host_triplet}-${host_triplet}-release-binary"
+	echo "Building host nsgenbind for $host_triplet from the pinned HaikuPorts source"
+	make -C "$nsgenbind_source" \
+		BUILD="$host_triplet" HOST="$host_triplet" VARIANT=release \
+		CC=/usr/bin/gcc BUILD_CC=/usr/bin/gcc \
+		NSSHARED="$buildsystem_dir" NSBUILD="$buildsystem_dir/makefiles" \
+		BUILDDIR="$build_dir" PREFIX=/usr -j"${BUILD_JOBS:-2}"
+	cp -f "$nsgenbind_source/$build_dir/nsgenbind" "$WORKPATH/bin/nsgenbind"
+	chmod 0755 "$WORKPATH/bin/nsgenbind"
+}
 # Jam treats unavailable image packages as warnings, so ensure NetSurf has
 # been built before it assembles the ARM64 nightly image.
 if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
+	echo "Preparing host build tool nsgenbind"
+	build_port nsgenbind ""
+	build_host_nsgenbind
 	echo "Building selected ARM64 GUI browser (NetSurf)"
 	build_port netsurf ""
 fi
@@ -221,6 +247,9 @@ manifest_temporary="$manifest.part"
 {
 	printf 'format=1\nprofile=nightly-mmc\ntarget_arch=%s\n' "$TARGET_ARCH"
 	printf 'build_driver_revision=%s\n' "${BUILD_DRIVER_REV:-unrecorded}"
+	printf 'host_build_machine=%s\n' "$(/usr/bin/gcc -dumpmachine)"
+	printf 'host_gcc_version=%s\n' "$(/usr/bin/gcc -dumpfullversion)"
+	printf 'host_nsgenbind_sha256=%s\n' "$(sha256sum "$WORKPATH/bin/nsgenbind" | cut -d' ' -f1)"
 	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do
 		printf 'source_%s_revision=%s\n' "$source_repo" "$(git -C "$WORKPATH/src/$source_repo" rev-parse HEAD)"
 	done

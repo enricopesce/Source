@@ -99,6 +99,7 @@ The ARM64 development package selection is defined in
 `isl_devel` and `xxhash_devel`, plus `haiku_devel.hpkg`.
 
 The ARM64 profile also requests the graphical NetSurf browser, built from the pinned HaikuPorts checkout and its dependency closure. The recipe declares all architectures; a successful ARM64 build is verified by completing this profile.
+NetSurf needs `nsgenbind` while building. Since the HaikuPorts package is a target ARM64 executable and cannot run on the Linux builder, the driver builds a host-native copy from the same pinned `nsgenbind` and NetSurf build-system sources using the container's GCC, Bison, and Flex. It records the host triplet, GCC version, and helper hash in the image build-info.
 
 The selected packages and their transitive dependencies are built from the
 HaikuPorts revision in `sources.lock` when they are missing, then included in
