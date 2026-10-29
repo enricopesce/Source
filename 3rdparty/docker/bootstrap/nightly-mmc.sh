@@ -180,7 +180,7 @@ build_port() {
 }
 while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
-	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log"; then
+	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
 		# With HAIKU_NO_DOWNLOADS, Jam reports a repository-cache failure when
 		# profile packages are absent instead of naming the first missing file.
 		while IFS= read -r package_path; do
