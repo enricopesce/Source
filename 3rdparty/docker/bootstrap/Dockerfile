@@ -22,9 +22,13 @@ ENV GIT_HAIKUPORTS_CROSS="https://github.com/haikuports/haikuports.cross.git"
 
 ADD prep.sh /usr/local/bin/prep
 ADD crosstools.sh /usr/local/bin/crosstools
+ADD build-cross-fortran.sh /usr/local/bin/build-cross-fortran
 ADD bootstrap.sh /usr/local/bin/bootstrap
 ADD nightly-mmc.sh /usr/local/bin/nightly-mmc
+ADD host-uudecode.py /usr/local/bin/haiku-host-uudecode
+RUN chmod 0755 /usr/local/bin/haiku-host-uudecode
 ADD sources.lock /usr/local/share/haiku-bootstrap/sources.lock
+ADD patches/ /usr/local/share/haiku-bootstrap/patches/
 ADD haikuports_chroot.sh /usr/local/bin/haikuports_chroot
 ADD haikuports_build.sh /usr/local/bin/haikuports_build
 

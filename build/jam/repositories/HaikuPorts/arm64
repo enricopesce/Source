@@ -30,8 +30,8 @@ file_data-5.43-2
 	file-5.43-2
 	findutils-4.9.0_bootstrap-1
 	flex-2.6.4-5
-	freetype-2.6.3_bootstrap-1
-	freetype_devel-2.6.3_bootstrap-1
+	freetype-2.13.3_bootstrap-1
+	freetype_devel-2.13.3_bootstrap-1
 	grep-3.11_bootstrap-1
 	icu74-74.1_bootstrap-1
 	icu74_devel-74.1_bootstrap-1

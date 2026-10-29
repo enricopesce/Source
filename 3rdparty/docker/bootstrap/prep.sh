@@ -22,6 +22,8 @@ clone_pinned buildtools "$GIT_BUILDTOOLS" "$REF_BUILDTOOLS"
 clone_pinned haikuporter "$GIT_HAIKUPORTER" "$REF_HAIKUPORTER"
 clone_pinned haikuports "$GIT_HAIKUPORTS" "$REF_HAIKUPORTS"
 clone_pinned haikuports.cross "$GIT_HAIKUPORTS_CROSS" "$REF_HAIKUPORTS_CROSS"
+git -C "$WORKPATH/src/haikuports.cross" apply \
+	/usr/local/share/haiku-bootstrap/patches/arm64-bootstrap-cross-recipes.patch
 clone_pinned haiku "$GIT_HAIKU" "$REF_HAIKU"
 mkdir -p "$WORKPATH/bin"
 if [ ! -x "$WORKPATH/bin/jam" ]; then

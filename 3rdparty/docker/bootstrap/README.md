@@ -33,6 +33,14 @@ To repeat the build from a clean workspace, first choose a new WORKDIR:
 
     make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-clean"
 
+To continue an interrupted build without rebuilding its source checkouts,
+cross-toolchain, or bootstrap image, use the existing workspace with:
+
+    make nightly-mmc RESUME=1 WORKDIR="$HOME/haiku-nightly-mmc-work"
+
+The build container provides a deterministic host-side uudecode helper for
+firmware recipes that need to decode files while cross-building ARM64 packages.
+
 make clean-work removes the selected workspace, including source checkouts,
 intermediate builds, and images. Use it only when that data can be discarded.
 

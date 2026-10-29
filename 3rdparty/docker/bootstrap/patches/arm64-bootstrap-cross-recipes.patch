@@ -1,0 +1,71 @@
+diff --git a/dev-lang/python_bootstrap/python3.10_bootstrap-3.10.21.recipe b/dev-lang/python_bootstrap/python3.10_bootstrap-3.10.21.recipe
+index ba51da4..ef0c5da 100644
+--- a/dev-lang/python_bootstrap/python3.10_bootstrap-3.10.21.recipe
++++ b/dev-lang/python_bootstrap/python3.10_bootstrap-3.10.21.recipe
+@@ -73,8 +73,11 @@ BUILD()
+ 	# Build a small host python needed for crosscompilation
+ 	mkdir -p hostpython
+ 	cd hostpython
+-	../configure
++	local targetLibraryPath="${LIBRARY_PATH:-}"
++	unset LIBRARY_PATH
++	CC="$CC_FOR_BUILD" CXX="$CXX_FOR_BUILD" ../configure
+ 	make $jobArgs platform
++	if [ -n "$targetLibraryPath" ]; then export LIBRARY_PATH="$targetLibraryPath"; fi
+ 	cd ..
+ 
+ 	export PATH="$(pwd)/hostpython:$PATH"
+diff --git a/dev-libs/icu_bootstrap/icu74_bootstrap-74.1.recipe b/dev-libs/icu_bootstrap/icu74_bootstrap-74.1.recipe
+index 6c53504..43c84a9 100644
+--- a/dev-libs/icu_bootstrap/icu74_bootstrap-74.1.recipe
++++ b/dev-libs/icu_bootstrap/icu74_bootstrap-74.1.recipe
+@@ -138,9 +138,11 @@ BUILD()
+ 	# found in that case.
+ 	mkdir -p $buildOutputDir
+ 	cd $buildOutputDir
+-	runConfigure ../icu/source/configure --disable-tests \
++	CC="$CC_FOR_BUILD" CXX="$CXX_FOR_BUILD" runConfigure \
++		--omit-buildspec ../icu/source/configure --disable-tests \
+ 		--disable-samples --disable-extras --with-data-packaging=library
+ 	make $jobArgs
++	unset CC CXX
+ 
+ 	# now make target-architecture-specific output directory and build ICU for
+ 	# the target architecture, pointing at the directory containing the version
+diff --git a/sys-apps/texinfo_bootstrap/texinfo_bootstrap-7.2.recipe b/sys-apps/texinfo_bootstrap/texinfo_bootstrap-7.2.recipe
+index b922759..5636f83 100644
+--- a/sys-apps/texinfo_bootstrap/texinfo_bootstrap-7.2.recipe
++++ b/sys-apps/texinfo_bootstrap/texinfo_bootstrap-7.2.recipe
+@@ -54,9 +54,19 @@ BUILD()
+ 	# target and build machine flags).
+ 	mkdir -p build-host
+ 	cd build-host
+-	runConfigure ../configure --enable-perl-xs=no
++	local targetLibraryPath="${LIBRARY_PATH:-}"
++	unset LIBRARY_PATH
++	CPPFLAGS="-I../gnulib/lib" \
++		CC="$CC_FOR_BUILD" CXX="$CXX_FOR_BUILD" \
++		runConfigure --omit-buildspec ../configure --enable-perl-xs=no
+ 	make -C gnulib/lib
++	make -C gnulib/lib libgnu_a-stat.o
++	/usr/bin/ar r gnulib/lib/libgnu.a gnulib/lib/libgnu_a-stat.o
++	/usr/bin/ranlib gnulib/lib/libgnu.a
++	sed "s/@HAVE_SYS_CDEFS_H@/1/" ../gnulib/lib/getopt-cdefs.in.h > gnulib/lib/getopt-cdefs.h
+ 	make -C info
++	if [ -n "$targetLibraryPath" ]; then export LIBRARY_PATH="$targetLibraryPath"; fi
++	unset CC CXX
+ 	cd ..
+ 
+ 	mkdir -p build
+diff --git a/sys-libs/ncurses_bootstrap/ncurses6_bootstrap-6.6.recipe b/sys-libs/ncurses_bootstrap/ncurses6_bootstrap-6.6.recipe
+index e556f16..d0d0d93 100644
+--- a/sys-libs/ncurses_bootstrap/ncurses6_bootstrap-6.6.recipe
++++ b/sys-libs/ncurses_bootstrap/ncurses6_bootstrap-6.6.recipe
+@@ -126,6 +126,7 @@ BUILD()
+ 	runConfigure \
+ 		--omit-dirs "dataRootDir docDir" ./configure \
+ 		--build=$buildMachineTriple --host=$effectiveTargetMachineTriple \
++		--with-build-cc="$CC_FOR_BUILD" \
+ 		--with-libtool=$libtool \
+ 		--disable-stripping \
+ 		--disable-relink \

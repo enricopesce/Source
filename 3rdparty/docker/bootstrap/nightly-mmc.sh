@@ -4,20 +4,154 @@ set -euo pipefail
 : "${TARGET_ARCH:=arm64}"
 : "${BUILD_DIR_NAME:=generated.$TARGET_ARCH}"
 if [ "$TARGET_ARCH" != arm64 ]; then echo "This profile is ARM64 only (TARGET_ARCH=arm64)"; exit 1; fi
-if [ -e "$WORKPATH/$BUILD_DIR_NAME" ]; then
+if [ "${RESUME:-0}" != 1 ] && [ -e "$WORKPATH/$BUILD_DIR_NAME" ]; then
 	echo "$WORKPATH/$BUILD_DIR_NAME already exists."
-	echo "Use a new empty WORKDIR for a clean, reproducible build."
+	echo "Use RESUME=1 to continue it, or select a new WORKDIR for a clean build."
 	exit 1
 fi
-export BUILD_DIR_NAME
-prep
-crosstools
-bootstrap
+export TARGET_ARCH BUILD_DIR_NAME
+export PATH="$WORKPATH/bin:$PATH"
+export HAIKU_BOOTSTRAP_SOURCES_PROFILE=@nightly-mmc
+if [ "${RESUME:-0}" = 1 ]; then
+	if [ ! -d "$WORKPATH/src/haiku" ] || [ ! -d "$WORKPATH/$BUILD_DIR_NAME" ]; then
+		echo "RESUME=1 requires existing source checkouts and $WORKPATH/$BUILD_DIR_NAME"
+		exit 1
+	fi
+	echo "Resuming ARM64 build in $WORKPATH/$BUILD_DIR_NAME"
+else
+	prep
+	crosstools
+	bootstrap
+	build-cross-fortran
+fi
+
 GENERATED="$WORKPATH/$BUILD_DIR_NAME"
+PACKAGE_ROOT="$GENERATED/objects/haiku/$TARGET_ARCH/packaging"
+CROSS_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPortsCross-build"
+BOOTSTRAP_PACKAGES="$CROSS_REPOSITORY/packages/.obsolete"
+PORT_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPorts-sources-build"
+PORT_PACKAGES="$PORT_REPOSITORY/packages"
+HOST_TOOLS="$GENERATED/objects/linux/x86_64/release/tools"
+UNBOOTSTRAP="$GENERATED/.unbootstrap"
+
+export PATH="$HOST_TOOLS/addattr:$HOST_TOOLS/package:$HOST_TOOLS/locale:$HOST_TOOLS/rc:$HOST_TOOLS:$PATH"
+export LD_LIBRARY_PATH="$GENERATED/objects/linux/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export HAIKU_SOURCE_DIR="$WORKPATH/src/haiku"
+
+mkdir -p "$WORKPATH/bin" "$PORT_PACKAGES"
+cp /usr/local/bin/haiku-host-uudecode "$WORKPATH/bin/uudecode"
+chmod 0755 "$WORKPATH/bin/uudecode"
+
+mkdir -p "$PORT_PACKAGES"
+shopt -s nullglob
+if [ "${RESUME:-0}" = 1 ] && [ -e "$UNBOOTSTRAP/.converted" ]; then
+	echo "Reusing converted bootstrap packages"
+else
+	mkdir -p "$UNBOOTSTRAP/packages"
+bootstrap_inputs=("$BOOTSTRAP_PACKAGES"/*_bootstrap*.hpkg)
+if [ ${#bootstrap_inputs[@]} -eq 0 ]; then
+	echo "No bootstrap packages found in $BOOTSTRAP_PACKAGES"
+	exit 1
+fi
+cp "${bootstrap_inputs[@]}" "$UNBOOTSTRAP/packages/"
+(
+	cd "$UNBOOTSTRAP"
+	"$HAIKU_SOURCE_DIR/3rdparty/pulkomandy/unbootstrap.sh"
+)
+converted_packages=("$UNBOOTSTRAP"/*.hpkg)
+if [ ${#converted_packages[@]} -eq 0 ]; then
+	echo "Bootstrap package conversion produced no packages"
+	exit 1
+fi
+cp -f "${converted_packages[@]}" "$PORT_PACKAGES/"
+	touch "$UNBOOTSTRAP/.converted"
+fi
+
+CROSS_DEVEL_PACKAGE="$PACKAGE_ROOT/packages/haiku_cross_devel_sysroot_stage1_${TARGET_ARCH}.hpkg"
+HAIKU_RUNTIME_PACKAGE="$PACKAGE_ROOT/packages/haiku.hpkg"
+HAIKU_DEVEL_PACKAGE="$PACKAGE_ROOT/packages/haiku_devel.hpkg"
+HPORTS_CONFIG="$PORT_REPOSITORY/haikuports.conf"
+if [ ! -s "$HPORTS_CONFIG" ] || [ ! -s "$CROSS_DEVEL_PACKAGE" ] || [ ! -s "$HAIKU_RUNTIME_PACKAGE" ] || [ ! -s "$HAIKU_DEVEL_PACKAGE" ]; then
+	echo "Missing HaikuPorter cross-build inputs under $PACKAGE_ROOT"
+	exit 1
+fi
+cp -f "$HAIKU_RUNTIME_PACKAGE" "$HAIKU_DEVEL_PACKAGE" "$GENERATED/download/"
+
+mwx_firmware_archive="$GENERATED/download/mwx-firmware-20260309p0.tgz"
+mwx_firmware_sha256="777e0e188aeeece6bb294b1c2bcf54926b213276e31a86df1c04cf4248b41345"
+if ! printf '%s  %s\n' "$mwx_firmware_sha256" "$mwx_firmware_archive" | sha256sum -c - >/dev/null 2>&1; then
+	mwx_firmware_temporary="$mwx_firmware_archive.part"
+	if ! printf '%s  %s\n' "$mwx_firmware_sha256" "$mwx_firmware_temporary" | sha256sum -c - >/dev/null 2>&1; then
+		rm -f "$mwx_firmware_temporary"
+		wget -q -O "$mwx_firmware_temporary" https://firmware.openbsd.org/firmware/7.9/mwx-firmware-20260309p0.tgz
+		printf '%s  %s\n' "$mwx_firmware_sha256" "$mwx_firmware_temporary" | sha256sum -c -
+	fi
+	mv -f "$mwx_firmware_temporary" "$mwx_firmware_archive"
+fi
+
 cd "$GENERATED"
-# A fresh bootstrap repository makes the final Jam rules build every missing
-# profile package and its dependency closure from the pinned HaikuPorts tree.
-jam -q @nightly-mmc
+jam_log="$WORKPATH/nightly-mmc-jam.log"
+porter_log="$WORKPATH/nightly-mmc-porter.log"
+while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
+	missing_package=""
+	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log"; then
+		# With HAIKU_NO_DOWNLOADS, Jam reports a repository-cache failure when
+		# profile packages are absent instead of naming the first missing file.
+		while IFS= read -r package_path; do
+			package_name=${package_path#download/}
+			case "$package_name" in *_bootstrap-*.hpkg) continue ;; esac
+			if [ ! -s "$GENERATED/download/$package_name" ]; then
+				missing_package=$package_name
+				break
+			fi
+		done < <(grep -oE 'download/[A-Za-z0-9_.+-]+\.hpkg' "$jam_log" | sort -u)
+	fi
+	if [ -z "$missing_package" ]; then
+		echo "nightly-mmc stopped without a missing package target; log: $jam_log"
+		tail -n 20 "$jam_log"
+		exit 1
+	fi
+	port_name=$(printf '%s\n' "$missing_package" | sed -E 's/-[0-9].*\.hpkg$//')
+	case "$port_name" in
+		*_source_rigged) port_name=${port_name%_source_rigged} ;;
+		*_source|*_debuginfo) port_name=${port_name%_*} ;;
+	esac
+	echo "Building missing package $missing_package from HaikuPorts port $port_name"
+	runtime_packages=()
+	for package in "$PORT_PACKAGES"/*.hpkg; do
+		case "$package" in *-source.hpkg|*_source_rigged-*.hpkg|*-debuginfo.hpkg) continue ;; esac
+		runtime_packages+=("$package")
+	done
+	if [ ${#runtime_packages[@]} -eq 0 ]; then
+		echo "No runtime packages available for HaikuPorter"
+		exit 1
+	fi
+	runtime_package_list=$(IFS=,; echo "${runtime_packages[*]}")
+	if ! python3 "$WORKPATH/src/haikuporter/haikuporter" \
+		--config="$HPORTS_CONFIG" \
+		--cross-devel-package "$CROSS_DEVEL_PACKAGE" \
+		--cross-runtime-package "$HAIKU_RUNTIME_PACKAGE,$HAIKU_DEVEL_PACKAGE,$runtime_package_list" \
+		--no-package-obsoletion --missing-dependencies "$port_name" \
+		>"$porter_log" 2>&1; then
+		echo "HaikuPorter failed for $port_name; log: $porter_log"
+		tail -n 30 "$porter_log"
+		exit 1
+	fi
+	port_outputs=("$PORT_PACKAGES"/*.hpkg)
+	if [ ${#port_outputs[@]} -eq 0 ]; then
+		echo "HaikuPorter produced no package outputs for $port_name"
+		tail -n 20 "$porter_log"
+		exit 1
+	fi
+	cp -f "${port_outputs[@]}" "$GENERATED/download/"
+	if [ -e "$GENERATED/download/$missing_package" ]; then
+		continue
+	fi
+	echo "HaikuPorter did not produce the requested package $missing_package"
+	tail -n 30 "$porter_log"
+	exit 1
+done
+
 IMAGE="$GENERATED/haiku-mmc.image"
 if [ ! -s "$IMAGE" ]; then echo "Build completed without expected image: $IMAGE"; exit 1; fi
 echo "ARM64 nightly image: $IMAGE"

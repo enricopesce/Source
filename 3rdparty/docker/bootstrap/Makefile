@@ -2,6 +2,7 @@ ENGINE ?= podman
 IMAGE ?= localhost/renkuos-bootstrap-python312:nightly-mmc
 WORKDIR ?= $(HOME)/haiku-nightly-mmc-work
 TARGET_ARCH ?= arm64
+RESUME ?= 0
 
 .PHONY: image prep crosstools bootstrap nightly-mmc enter clean-work
 
@@ -21,7 +22,7 @@ bootstrap: image
 
 nightly-mmc: image
 	mkdir -p "$(WORKDIR)"
-	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) nightly-mmc
+	$(ENGINE) run --rm -e TARGET_ARCH=$(TARGET_ARCH) -e RESUME=$(RESUME) -v "$(WORKDIR):/work:exec" $(IMAGE) nightly-mmc
 
 enter: image
 	$(ENGINE) run --rm -it -e TARGET_ARCH=$(TARGET_ARCH) -v "$(WORKDIR):/work:exec" $(IMAGE) /bin/bash -l
