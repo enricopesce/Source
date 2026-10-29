@@ -98,6 +98,8 @@ The ARM64 development package selection is defined in
 `libtool`, `libarchive`, `libarchive_devel`, `libuv_devel`, `rhash_devel`,
 `isl_devel` and `xxhash_devel`, plus `haiku_devel.hpkg`.
 
+The ARM64 profile also requests the graphical NetSurf browser, built from the pinned HaikuPorts checkout and its dependency closure. The recipe declares all architectures; a successful ARM64 build is verified by completing this profile.
+
 The selected packages and their transitive dependencies are built from the
 HaikuPorts revision in `sources.lock` when they are missing, then included in
 the generated image. This is a cross-build on Linux x86_64; QEMU is not part
