@@ -69,3 +69,9 @@ index e556f16..d0d0d93 100644
  		--with-libtool=$libtool \
  		--disable-stripping \
  		--disable-relink \
+diff --git a/dev-lang/python_bootstrap/python_bootstrap-2.7.17.recipe b/dev-lang/python_bootstrap/python_bootstrap-2.7.17.recipe
+--- a/dev-lang/python_bootstrap/python_bootstrap-2.7.17.recipe
++++ b/dev-lang/python_bootstrap/python_bootstrap-2.7.17.recipe
+@@ -17,7 +17,7 @@
+-ARCHITECTURES="?x86_gcc2 ?x86 ?x86_64 ?sparc ?m68k"
++ARCHITECTURES="?x86_gcc2 ?x86 ?x86_64 arm64 ?sparc ?m68k"
