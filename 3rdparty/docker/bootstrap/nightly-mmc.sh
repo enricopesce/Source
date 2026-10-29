@@ -282,7 +282,8 @@ if [ ${#netsurf_packages[@]} -ne 1 ]; then
 	exit 1
 fi
 HAIKU_NETSURF_RUNTIME_PACKAGES_FILE="$GENERATED/netsurf-runtime-packages.jam"
-export HAIKU_NETSURF_RUNTIME_PACKAGES_FILE
+HAIKU_NETSURF_BASE_PACKAGES="libiconv libjpeg_turbo libpng16 openssl3 zlib zstd"
+export HAIKU_NETSURF_RUNTIME_PACKAGES_FILE HAIKU_NETSURF_BASE_PACKAGES
 {
 	printf 'HAIKU_NETSURF_RUNTIME_PACKAGES =\n'
 	/usr/local/bin/resolve-hpkg-dependencies \

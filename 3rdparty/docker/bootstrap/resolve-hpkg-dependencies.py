@@ -115,12 +115,13 @@ def main() -> int:
     if root_path not in packages:
         raise ValueError(f"Root package was not indexed: {root_path}")
 
+    base_packages = set(os.environ.get("HAIKU_NETSURF_BASE_PACKAGES", "").split())
     included: set[Path] = set()
     unresolved: set[str] = set()
     pending = [packages[root_path]]
     while pending:
         package = pending.pop()
-        if package.path in included:
+        if package.path in included or package.name in base_packages:
             continue
         included.add(package.path)
         for requirement in package.requires:
