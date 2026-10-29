@@ -4,7 +4,7 @@ RemotePackageRepository HaikuPorts
 	:
 	# architecture "any" packages
 	haikuporter-0_bootstrap-1
-	noto-20170202_bootstrap-7
+	noto-20260201-1
 intel_wifi_firmwares-2025_02_11-1
 realtek_wifi_firmwares-2019_01_02-1
 ralink_wifi_firmwares-2023_08_04-1
