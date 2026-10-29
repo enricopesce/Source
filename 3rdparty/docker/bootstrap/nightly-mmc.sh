@@ -237,6 +237,53 @@ EOF
 	rm -f "$package_info"
 	echo "Packaged HaikuPorts Git checkout at $source_revision"
 }
+build_haikuporter_runtime_package() {
+	local source_revision package_file package_root package_contents package_info wrapper
+	source_revision=$(git -C "$WORKPATH/src/haikuporter" rev-parse HEAD)
+	package_file="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
+	package_root="$GENERATED/haikuporter-runtime-package"
+	package_contents="$package_root/boot/system/data/haikuporter"
+	package_info="$GENERATED/haikuporter-renkuos.PackageInfo"
+	wrapper="$package_root/boot/system/bin/haikuporter"
+	rm -rf "$package_root"
+	rm -f "$package_file"
+	mkdir -p "$package_contents" "${wrapper%/*}" "$GENERATED/download"
+	git -C "$WORKPATH/src/haikuporter" archive --format=tar "$source_revision" \
+		| tar -xf - -C "$package_contents"
+	cp -a "$WORKPATH/src/haikuporter/.git" "$package_contents/.git"
+	if [ "$(git -C "$package_contents" rev-parse HEAD)" != "$source_revision" ]; then
+		echo "Packaged HaikuPorter checkout does not match pinned revision $source_revision" >&2
+		return 1
+	fi
+	cat > "$wrapper" <<'EOF'
+#!/bin/sh
+exec python3.14 /boot/system/data/haikuporter/haikuporter "$@"
+EOF
+	chmod 0755 "$wrapper"
+	cat > "$package_info" <<EOF
+name haikuporter
+version 1.5.3-2
+architecture any
+summary "RenkuOS HaikuPorter ARM64 build environment"
+description "HaikuPorter fork at $source_revision, with a native Python 3.14 launcher."
+packager "RenkuOS ARM64 build"
+vendor "RenkuOS"
+licenses { "MIT" }
+copyrights { "2013-2026 Haiku, Inc." }
+provides {
+	haikuporter = 1.5.3
+	cmd:haikuporter = 1.5.3
+}
+requires {
+	haiku
+	cmd:git
+	cmd:python3.14 >= 3.14.9
+}
+EOF
+	package create -q -C "$package_root" -i "$package_info" "$package_file"
+	rm -f "$package_info"
+	echo "Packaged HaikuPorter fork at $source_revision"
+}
 build_host_nsgenbind() {
 	local nsgenbind_makefile buildsystem_makefile nsgenbind_source buildsystem_dir host_triplet build_dir
 	nsgenbind_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
@@ -261,6 +308,7 @@ build_host_nsgenbind() {
 	chmod 0755 "$WORKPATH/bin/nsgenbind"
 }
 build_haikuports_source_package
+build_haikuporter_runtime_package
 # Jam treats unavailable image packages as warnings, so ensure NetSurf has
 # been built before it assembles the ARM64 nightly image.
 if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
@@ -281,17 +329,28 @@ if [ ${#netsurf_packages[@]} -ne 1 ]; then
 	echo "Expected one ARM64 NetSurf package, found ${#netsurf_packages[@]}" >&2
 	exit 1
 fi
-HAIKU_NETSURF_RUNTIME_PACKAGES_FILE="$GENERATED/netsurf-runtime-packages.jam"
-HAIKU_NETSURF_BASE_PACKAGES="libiconv libjpeg_turbo libpng16 openssl3 zlib zstd"
-export HAIKU_NETSURF_RUNTIME_PACKAGES_FILE HAIKU_NETSURF_BASE_PACKAGES
+if ! compgen -G "$PORT_PACKAGES/python3.14-*-arm64.hpkg" >/dev/null; then
+	echo "Building ARM64 Python 3.14 runtime for native HaikuPorter"
+	build_port python3.14 ""
+fi
+python314_packages=("$PORT_PACKAGES"/python3.14-*-arm64.hpkg)
+if [ ${#python314_packages[@]} -ne 1 ]; then
+	echo "Expected one ARM64 Python 3.14 package, found ${#python314_packages[@]}" >&2
+	exit 1
+fi
+haikuporter_package="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
+HAIKU_LOCAL_RUNTIME_PACKAGES_FILE="$GENERATED/local-runtime-packages.jam"
+HAIKU_IMAGE_BASE_PACKAGES="git libiconv libjpeg_turbo libpng16 openssl3 zlib zstd"
+export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
+local_runtime_roots=("${netsurf_packages[0]}" "$haikuporter_package" "${python314_packages[0]}")
 {
-	printf 'HAIKU_NETSURF_RUNTIME_PACKAGES =\n'
+	printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
 	/usr/local/bin/resolve-hpkg-dependencies \
-		"$HOST_TOOLS/package/package" "${netsurf_packages[0]}" \
-		"$PORT_PACKAGES" "$BOOTSTRAP_PACKAGE_REPOSITORY" \
+		"$HOST_TOOLS/package/package" "$PORT_PACKAGES" \
+		"$BOOTSTRAP_PACKAGE_REPOSITORY" -- "${local_runtime_roots[@]}" \
 		| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
 	printf ';\n'
-} > "$HAIKU_NETSURF_RUNTIME_PACKAGES_FILE"
+} > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
 
 while ! "$HOST_JAM" -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
@@ -333,6 +392,10 @@ manifest_temporary="$manifest.part"
 	printf 'host_gcc_version=%s\n' "$(/usr/bin/gcc -dumpfullversion)"
 	printf 'host_nsgenbind_sha256=%s\n' "$(sha256sum "$WORKPATH/bin/nsgenbind" | cut -d' ' -f1)"
 	printf 'haikuports_source_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg" | cut -d' ' -f1)"
+	printf 'haikuporter_runtime_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuporter-1.5.3-2-any.hpkg" | cut -d' ' -f1)"
+	printf 'netsurf_package_sha256=%s\n' "$(sha256sum "${netsurf_packages[0]}" | cut -d' ' -f1)"
+	printf 'python314_package_sha256=%s\n' "$(sha256sum "${python314_packages[0]}" | cut -d' ' -f1)"
+	printf 'local_runtime_package_list_sha256=%s\n' "$(sha256sum "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE" | cut -d' ' -f1)"
 	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do
 		printf 'source_%s_revision=%s\n' "$source_repo" "$(git -C "$WORKPATH/src/$source_repo" rev-parse HEAD)"
 	done

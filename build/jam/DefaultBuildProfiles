@@ -1,6 +1,6 @@
 # set HAIKU_BUILD_TYPE early
-if $(HAIKU_NETSURF_RUNTIME_PACKAGES_FILE) {
-	include $(HAIKU_NETSURF_RUNTIME_PACKAGES_FILE) ;
+if $(HAIKU_LOCAL_RUNTIME_PACKAGES_FILE) {
+	include $(HAIKU_LOCAL_RUNTIME_PACKAGES_FILE) ;
 }
 switch $(HAIKU_BUILD_PROFILE) {
 	case "bootstrap-*" : {
@@ -183,11 +183,11 @@ rule DefineDefaultBuildProfiles
 				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
 					;
 				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
-					if ! $(HAIKU_NETSURF_RUNTIME_PACKAGES) {
-						Exit "HAIKU_NETSURF_RUNTIME_PACKAGES must contain NetSurf and its runtime dependencies" ;
+					if ! $(HAIKU_LOCAL_RUNTIME_PACKAGES) {
+						Exit "HAIKU_LOCAL_RUNTIME_PACKAGES must contain local runtime HPKGs" ;
 					}
 					AddPackageFilesToHaikuImage system packages
-						: $(HAIKU_NETSURF_RUNTIME_PACKAGES) : nameFromMetaInfo ;
+						: $(HAIKU_LOCAL_RUNTIME_PACKAGES) : nameFromMetaInfo ;
 				} else {
 					AddHaikuImageSystemPackages netsurf ;
 				}

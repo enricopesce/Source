@@ -85,14 +85,22 @@ def package_order(package: Package) -> tuple[bool, str, str]:
 def main() -> int:
     if len(sys.argv) < 4:
         print(
-            "usage: resolve-hpkg-dependencies.py PACKAGE_TOOL ROOT_HPKG PACKAGE_DIR...",
+            "usage: resolve-hpkg-dependencies.py PACKAGE_TOOL PACKAGE_DIR... -- ROOT_HPKG...",
             file=sys.stderr,
         )
         return 2
 
+    try:
+        separator = sys.argv.index("--", 2)
+    except ValueError:
+        print("missing -- separator between package directories and roots", file=sys.stderr)
+        return 2
     tool = Path(sys.argv[1]).resolve()
-    root_path = Path(sys.argv[2]).resolve()
-    package_dirs = [Path(value).resolve() for value in sys.argv[3:]]
+    package_dirs = [Path(value).resolve() for value in sys.argv[2:separator]]
+    root_paths = [Path(value).resolve() for value in sys.argv[separator + 1 :]]
+    if not package_dirs or not root_paths:
+        print("at least one package directory and root HPKG are required", file=sys.stderr)
+        return 2
     env = os.environ.copy()
     packages: dict[Path, Package] = {}
     providers: dict[str, list[Package]] = {}
@@ -102,7 +110,7 @@ def main() -> int:
         candidates = sorted(
             {path for directory in package_dirs for path in directory.glob("*.hpkg") if is_runtime(path)}
         )
-        candidates = sorted(set(candidates) | {root_path})
+        candidates = sorted(set(candidates) | set(root_paths))
         for index, path in enumerate(candidates):
             package = read_package(tool, path, info_dir / f"{index}.PackageInfo", env)
             packages[path] = package
@@ -112,13 +120,14 @@ def main() -> int:
     for choices in providers.values():
         choices.sort(key=package_order, reverse=True)
 
-    if root_path not in packages:
-        raise ValueError(f"Root package was not indexed: {root_path}")
+    missing_roots = [path for path in root_paths if path not in packages]
+    if missing_roots:
+        raise ValueError("Root package(s) were not indexed: " + ", ".join(map(str, missing_roots)))
 
-    base_packages = set(os.environ.get("HAIKU_NETSURF_BASE_PACKAGES", "").split())
+    base_packages = set(os.environ.get("HAIKU_IMAGE_BASE_PACKAGES", "").split())
     included: set[Path] = set()
     unresolved: set[str] = set()
-    pending = [packages[root_path]]
+    pending = [packages[path] for path in root_paths]
     while pending:
         package = pending.pop()
         if package.path in included or package.name in base_packages:
@@ -134,11 +143,11 @@ def main() -> int:
 
     if unresolved:
         print(
-            "Unresolved NetSurf requirements expected from the Haiku base image: "
+            "Unresolved package requirements expected from the Haiku base image: "
             + ", ".join(sorted(unresolved)),
             file=sys.stderr,
         )
-    print(f"Resolved {len(included)} NetSurf runtime HPKGs", file=sys.stderr)
+    print(f"Resolved {len(included)} local runtime HPKGs", file=sys.stderr)
     for path in sorted(included, key=lambda item: (packages[item].name, packages[item].version)):
         print(path)
     return 0
@@ -148,5 +157,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except (OSError, subprocess.CalledProcessError, ValueError) as error:
-        print(f"NetSurf HPKG dependency resolution failed: {error}", file=sys.stderr)
+        print(f"HPKG dependency resolution failed: {error}", file=sys.stderr)
         raise SystemExit(1)
