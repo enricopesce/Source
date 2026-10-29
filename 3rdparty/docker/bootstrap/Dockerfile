@@ -15,6 +15,22 @@ RUN apt-get install -y git nasm autoconf automake autopoint texinfo \
 	libzstd-dev libcurl4-openssl-dev genisoimage libtool \
 	mtools gcc-multilib u-boot-tools util-linux device-tree-compiler bc attr
 RUN apt-get install -y cmake pkg-config libncurses-dev
+
+# Debian Bookworm provides Autoconf 2.71; Python 3.14 ports require 2.72.
+ARG AUTOCONF_VERSION=2.72
+ARG AUTOCONF_SHA256=ba885c1319578d6c94d46e9b0dceb4014caafe2490e437a0dbca3f270a223f5a
+RUN set -eux; \
+    cd /tmp; \
+    wget -q "https://ftp.gnu.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.xz"; \
+    echo "${AUTOCONF_SHA256}  autoconf-${AUTOCONF_VERSION}.tar.xz" | sha256sum --check --strict -; \
+    tar -xf "autoconf-${AUTOCONF_VERSION}.tar.xz"; \
+    cd "autoconf-${AUTOCONF_VERSION}"; \
+    ./configure --prefix=/usr/local; \
+    make -j"$(nproc)"; \
+    make install; \
+    autoconf --version | grep -Fq "${AUTOCONF_VERSION}"; \
+    cd /; \
+    rm -rf "/tmp/autoconf-${AUTOCONF_VERSION}" "/tmp/autoconf-${AUTOCONF_VERSION}.tar.xz"
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc
