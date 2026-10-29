@@ -253,6 +253,16 @@ if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
 	build_port netsurf ""
 fi
 
+netsurf_packages=("$PORT_PACKAGES"/netsurf-*-arm64.hpkg)
+if [ ${#netsurf_packages[@]} -ne 1 ]; then
+	echo "Expected one ARM64 NetSurf package, found ${#netsurf_packages[@]}" >&2
+	exit 1
+fi
+HAIKU_NETSURF_RUNTIME_PACKAGES=$(/usr/local/bin/resolve-hpkg-dependencies \
+	"$HOST_TOOLS/package/package" "${netsurf_packages[0]}" \
+	"$PORT_PACKAGES" "$BOOTSTRAP_PACKAGE_REPOSITORY")
+export HAIKU_NETSURF_RUNTIME_PACKAGES
+
 while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then

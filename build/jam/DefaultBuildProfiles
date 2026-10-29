@@ -179,7 +179,15 @@ rule DefineDefaultBuildProfiles
 					cmake ninja gdb libtool libarchive
 				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
 					;
-				AddHaikuImageSystemPackages netsurf ;
+				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
+					if ! $(HAIKU_NETSURF_RUNTIME_PACKAGES) {
+						Exit "HAIKU_NETSURF_RUNTIME_PACKAGES must contain NetSurf and its runtime dependencies" ;
+					}
+					AddPackageFilesToHaikuImage system packages
+						: $(HAIKU_NETSURF_RUNTIME_PACKAGES) : nameFromMetaInfo ;
+				} else {
+					AddHaikuImageSystemPackages netsurf ;
+				}
 				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
 					if ! $(HAIKU_PORTS_SOURCE_PACKAGE) {
 						Exit "HAIKU_PORTS_SOURCE_PACKAGE must point to the pinned HaikuPorts HPKG" ;
