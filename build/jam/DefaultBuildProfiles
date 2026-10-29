@@ -175,6 +175,7 @@ rule DefineDefaultBuildProfiles
 					cmake ninja gdb libtool libarchive
 				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
 					;
+				AddHaikuImageSystemPackages netsurf ;
 				AddPackageFilesToHaikuImage system packages : haiku_devel.hpkg
 					: nameFromMetaInfo ;
 			}
