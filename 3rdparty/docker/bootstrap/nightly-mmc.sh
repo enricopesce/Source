@@ -97,6 +97,87 @@ fi
 cd "$GENERATED"
 jam_log="$WORKPATH/nightly-mmc-jam.log"
 porter_log="$WORKPATH/nightly-mmc-porter.log"
+ports_root="$WORKPATH/src/haikuports"
+declare -A BUILDING_PORTS=()
+build_port() {
+	local port_name="$1"
+	local required_output="${2:-}"
+	local depth="${3:-0}"
+	local package dependency provider runtime_package_list
+	local -a runtime_packages port_outputs
+
+	if (( depth > 32 )); then
+		echo "Dependency build exceeded 32 levels at $port_name" >&2
+		return 1
+	fi
+	if [[ ${BUILDING_PORTS[$port_name]+building} ]]; then
+		echo "Cycle while building HaikuPorts dependency $port_name" >&2
+		return 1
+	fi
+	BUILDING_PORTS[$port_name]=1
+
+	runtime_packages=()
+	for package in "$PORT_PACKAGES"/*.hpkg; do
+		case "$package" in *-source.hpkg|*_source_rigged-*.hpkg|*-debuginfo.hpkg) continue ;; esac
+		runtime_packages+=("$package")
+	done
+	if [ ${#runtime_packages[@]} -eq 0 ]; then
+		echo "No runtime packages available for HaikuPorter" >&2
+		unset "BUILDING_PORTS[$port_name]"
+		return 1
+	fi
+	runtime_package_list=$(IFS=,; echo "${runtime_packages[*]}")
+	if python3 "$WORKPATH/src/haikuporter/haikuporter" \
+		--config="$HPORTS_CONFIG" \
+		--cross-devel-package "$CROSS_DEVEL_PACKAGE" \
+		--cross-runtime-package "$HAIKU_RUNTIME_PACKAGE,$HAIKU_DEVEL_PACKAGE,$runtime_package_list" \
+		--no-package-obsoletion --missing-dependencies "$port_name" \
+		>"$porter_log" 2>&1; then
+		port_outputs=("$PORT_PACKAGES"/*.hpkg)
+		if [ ${#port_outputs[@]} -eq 0 ]; then
+			echo "HaikuPorter produced no package outputs for $port_name" >&2
+			tail -n 20 "$porter_log"
+			unset "BUILDING_PORTS[$port_name]"
+			return 1
+		fi
+		cp -f "${port_outputs[@]}" "$GENERATED/download/"
+		if [ -n "$required_output" ] && [ ! -s "$GENERATED/download/$required_output" ]; then
+			echo "HaikuPorter did not produce the requested package $required_output" >&2
+			tail -n 30 "$porter_log"
+			unset "BUILDING_PORTS[$port_name]"
+			return 1
+		fi
+		unset "BUILDING_PORTS[$port_name]"
+		return 0
+	fi
+
+	dependency=$(sed -nE 's/.*Reason: build-requires "([^"]+)".*/\1/p' "$porter_log" | head -n 1)
+	if [ -z "$dependency" ]; then
+		echo "HaikuPorter failed for $port_name; log: $porter_log" >&2
+		tail -n 30 "$porter_log"
+		unset "BUILDING_PORTS[$port_name]"
+		return 1
+	fi
+	if ! provider=$(/usr/local/bin/find-port-provider "$ports_root" "$dependency"); then
+		echo "Cannot resolve HaikuPorts provider for $dependency needed by $port_name" >&2
+		tail -n 30 "$porter_log"
+		unset "BUILDING_PORTS[$port_name]"
+		return 1
+	fi
+	if [ "$provider" = "$port_name" ]; then
+		echo "Port $port_name cannot resolve its own build requirement $dependency" >&2
+		tail -n 30 "$porter_log"
+		unset "BUILDING_PORTS[$port_name]"
+		return 1
+	fi
+	echo "Building missing dependency $dependency from HaikuPorts port $provider"
+	if ! build_port "$provider" "" "$((depth + 1))"; then
+		unset "BUILDING_PORTS[$port_name]"
+		return 1
+	fi
+	unset "BUILDING_PORTS[$port_name]"
+	build_port "$port_name" "$required_output" "$((depth + 1))"
+}
 while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log"; then
@@ -104,7 +185,6 @@ while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 		# profile packages are absent instead of naming the first missing file.
 		while IFS= read -r package_path; do
 			package_name=${package_path#download/}
-			case "$package_name" in *_bootstrap-*.hpkg) continue ;; esac
 			if [ ! -s "$GENERATED/download/$package_name" ]; then
 				missing_package=$package_name
 				break
@@ -122,39 +202,9 @@ while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 		*_source|*_debuginfo) port_name=${port_name%_*} ;;
 	esac
 	echo "Building missing package $missing_package from HaikuPorts port $port_name"
-	runtime_packages=()
-	for package in "$PORT_PACKAGES"/*.hpkg; do
-		case "$package" in *-source.hpkg|*_source_rigged-*.hpkg|*-debuginfo.hpkg) continue ;; esac
-		runtime_packages+=("$package")
-	done
-	if [ ${#runtime_packages[@]} -eq 0 ]; then
-		echo "No runtime packages available for HaikuPorter"
-		exit 1
-	fi
-	runtime_package_list=$(IFS=,; echo "${runtime_packages[*]}")
-	if ! python3 "$WORKPATH/src/haikuporter/haikuporter" \
-		--config="$HPORTS_CONFIG" \
-		--cross-devel-package "$CROSS_DEVEL_PACKAGE" \
-		--cross-runtime-package "$HAIKU_RUNTIME_PACKAGE,$HAIKU_DEVEL_PACKAGE,$runtime_package_list" \
-		--no-package-obsoletion --missing-dependencies "$port_name" \
-		>"$porter_log" 2>&1; then
-		echo "HaikuPorter failed for $port_name; log: $porter_log"
-		tail -n 30 "$porter_log"
-		exit 1
-	fi
-	port_outputs=("$PORT_PACKAGES"/*.hpkg)
-	if [ ${#port_outputs[@]} -eq 0 ]; then
-		echo "HaikuPorter produced no package outputs for $port_name"
-		tail -n 20 "$porter_log"
-		exit 1
-	fi
-	cp -f "${port_outputs[@]}" "$GENERATED/download/"
-	if [ -e "$GENERATED/download/$missing_package" ]; then
-		continue
-	fi
-	echo "HaikuPorter did not produce the requested package $missing_package"
-	tail -n 30 "$porter_log"
-	exit 1
+    if ! build_port "$port_name" "$missing_package"; then
+        exit 1
+    fi
 done
 
 IMAGE="$GENERATED/haiku-mmc.image"

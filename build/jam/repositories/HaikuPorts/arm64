@@ -3,7 +3,7 @@ RemotePackageRepository HaikuPorts
 	: https://eu.hpkg.haiku-os.org/haikuports/master/build-packages
 	:
 	# architecture "any" packages
-	haikuporter-0_bootstrap-1
+	haikuporter-1.5.3-1
 	noto-20260201-1
 intel_wifi_firmwares-2025_02_11-1
 realtek_wifi_firmwares-2019_01_02-1
