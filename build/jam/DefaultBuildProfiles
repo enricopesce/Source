@@ -139,8 +139,12 @@ rule DefineDefaultBuildProfiles
 			AddGroupToHaikuImage party : 101 : user sshd ;
 			HAIKU_IMAGE_HOST_NAME ?= shredder ;
 			if $(HAIKU_PACKAGING_ARCHS) = arm64 {
-				# The ARM64 nightly image includes the development toolchain.
-				HAIKU_IMAGE_SIZE ?= 8000 ;
+				# The development profile includes the pinned HaikuPorts checkout.
+				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
+					HAIKU_IMAGE_SIZE ?= 9000 ;
+				} else {
+					HAIKU_IMAGE_SIZE ?= 8000 ;
+				}
 			} else {
 				if $(DEBUG) != 0 {
 					HAIKU_IMAGE_SIZE ?= 850 ;

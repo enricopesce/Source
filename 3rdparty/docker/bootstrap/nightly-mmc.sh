@@ -118,7 +118,7 @@ build_port() {
 
 	runtime_packages=()
 	for package in "$PORT_PACKAGES"/*.hpkg; do
-		case "$package" in *-source.hpkg|*_source_rigged-*.hpkg|*-debuginfo.hpkg) continue ;; esac
+		case "$package" in *-source.hpkg|*_source_rigged-*.hpkg|*-debuginfo.hpkg|haikuports_source-*.hpkg) continue ;; esac
 		runtime_packages+=("$package")
 	done
 	if [ ${#runtime_packages[@]} -eq 0 ]; then
@@ -209,6 +209,7 @@ provides { haikuports_source = 1.0.0 }
 requires { haiku }
 EOF
 	package create -q -C "$package_root" -i "$package_info" "$package_file"
+	cp -f "$package_file" "$PORT_PACKAGES/"
 	rm -f "$package_info"
 	echo "Packaged HaikuPorts Git checkout at $source_revision"
 }
