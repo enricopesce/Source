@@ -1,4 +1,7 @@
 # set HAIKU_BUILD_TYPE early
+if $(HAIKU_NETSURF_RUNTIME_PACKAGES_FILE) {
+	include $(HAIKU_NETSURF_RUNTIME_PACKAGES_FILE) ;
+}
 switch $(HAIKU_BUILD_PROFILE) {
 	case "bootstrap-*" : {
 		HAIKU_BUILD_TYPE = bootstrap ;

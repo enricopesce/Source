@@ -10,7 +10,28 @@ if [ "${RESUME:-0}" != 1 ] && [ -e "$WORKPATH/$BUILD_DIR_NAME" ]; then
 	exit 1
 fi
 export TARGET_ARCH BUILD_DIR_NAME
-export PATH="$WORKPATH/bin:$PATH"
+put_work_bin_last() {
+	local entry new_path=""
+	local -a path_entries
+	IFS=: read -r -a path_entries <<< "$PATH"
+	for entry in "${path_entries[@]}"; do
+		if [ -n "$entry" ] && [ "$entry" != "$WORKPATH/bin" ]; then
+			new_path="${new_path:+$new_path:}$entry"
+		fi
+	done
+	export PATH="$new_path:$WORKPATH/bin"
+}
+use_host_jam() {
+	HOST_JAM="$WORKPATH/src/buildtools/jam/bin.linuxx86/jam"
+	if [ ! -x "$HOST_JAM" ]; then
+		echo "Host Jam executable is missing: $HOST_JAM" >&2
+		return 1
+	fi
+	local host_jam_dir=${HOST_JAM%/*}
+	PATH="${PATH%:$WORKPATH/bin}"
+	export PATH="$PATH:$host_jam_dir:$WORKPATH/bin"
+}
+put_work_bin_last
 export HAIKU_BOOTSTRAP_SOURCES_PROFILE=@nightly-mmc
 if [ "${RESUME:-0}" = 1 ]; then
 	if [ ! -d "$WORKPATH/src/haiku" ] || [ ! -d "$WORKPATH/$BUILD_DIR_NAME" ]; then
@@ -18,9 +39,11 @@ if [ "${RESUME:-0}" = 1 ]; then
 		exit 1
 	fi
 	echo "Resuming ARM64 build in $WORKPATH/$BUILD_DIR_NAME"
+	use_host_jam
 	build-cross-fortran
 else
 	prep
+	use_host_jam
 	crosstools
 	bootstrap
 	build-cross-fortran
@@ -258,12 +281,18 @@ if [ ${#netsurf_packages[@]} -ne 1 ]; then
 	echo "Expected one ARM64 NetSurf package, found ${#netsurf_packages[@]}" >&2
 	exit 1
 fi
-HAIKU_NETSURF_RUNTIME_PACKAGES=$(/usr/local/bin/resolve-hpkg-dependencies \
-	"$HOST_TOOLS/package/package" "${netsurf_packages[0]}" \
-	"$PORT_PACKAGES" "$BOOTSTRAP_PACKAGE_REPOSITORY")
-export HAIKU_NETSURF_RUNTIME_PACKAGES
+HAIKU_NETSURF_RUNTIME_PACKAGES_FILE="$GENERATED/netsurf-runtime-packages.jam"
+export HAIKU_NETSURF_RUNTIME_PACKAGES_FILE
+{
+	printf 'HAIKU_NETSURF_RUNTIME_PACKAGES =\n'
+	/usr/local/bin/resolve-hpkg-dependencies \
+		"$HOST_TOOLS/package/package" "${netsurf_packages[0]}" \
+		"$PORT_PACKAGES" "$BOOTSTRAP_PACKAGE_REPOSITORY" \
+		| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
+	printf ';\n'
+} > "$HAIKU_NETSURF_RUNTIME_PACKAGES_FILE"
 
-while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
+while ! "$HOST_JAM" -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
 		# With HAIKU_NO_DOWNLOADS, Jam reports a repository-cache failure when
