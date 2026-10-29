@@ -24,6 +24,22 @@ for recipe in sorted(root.rglob("*.recipe")):
         continue
     if pattern.search(source):
         providers.add(recipe.parent.name)
+        continue
+
+    # Python ports generate per-version package provides in shell loops, so
+    # their concrete names (for example installer_python310) are not literal.
+    dynamic = re.fullmatch(
+        r"(?P<port>[A-Za-z0-9_.+-]+)_python(?P<version>3(?:\.\d+|\d{1,2}))",
+        provide,
+    )
+    versions = re.search(r"PYTHON_VERSIONS\s*=\s*\(([^)]*)\)", source)
+    if dynamic and versions and re.search(r"PROVIDES_\$pythonPackage", source):
+        version = dynamic.group("version")
+        version = version if "." in version else f"3.{version[1:]}"
+        recipe_port = recipe.parent.name.replace("-", "_")
+        requested_port = dynamic.group("port").replace("-", "_")
+        if recipe_port == requested_port and version in versions.group(1).split():
+            providers.add(recipe.parent.name)
 
 if len(providers) == 1:
     print(next(iter(providers)))

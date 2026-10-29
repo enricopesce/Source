@@ -37,7 +37,10 @@ revisions used.
 nightly-mmc builds the container image once, checks out the commits in
 sources.lock, builds the cross-toolchain and bootstrap packages, then runs
 @nightly-mmc. Missing profile packages and their dependencies are built from
-the pinned HaikuPorts checkout. The generated image is written to
+the pinned HaikuPorts checkout. The driver follows both BUILD_REQUIRES and
+BUILD_PREREQUIRES reported by HaikuPorter, including dynamically declared
+Python version subpackages, builds the pinned provider, and retries the
+blocked port. The generated image is written to
 $WORKDIR/generated.arm64/haiku-mmc.image.
 
 To repeat from clean sources, select a new workspace:

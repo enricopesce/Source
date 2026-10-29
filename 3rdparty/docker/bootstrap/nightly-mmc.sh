@@ -151,7 +151,7 @@ build_port() {
 		return 0
 	fi
 
-	dependency=$(sed -nE 's/.*Reason: build-requires "([^"]+)".*/\1/p' "$porter_log" | head -n 1)
+	dependency=$(sed -nE 's/.*Reason: build-(requires|prerequires) "([^"]+)".*/\2/p' "$porter_log" | head -n 1)
 	if [ -z "$dependency" ]; then
 		echo "HaikuPorter failed for $port_name; log: $porter_log" >&2
 		tail -n 30 "$porter_log"
