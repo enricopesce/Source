@@ -28,16 +28,17 @@ if [ -x "$CROSS_TOOLS/bin/aarch64-unknown-haiku-gfortran" ] && [ -x "$CROSS_TOOL
 	exit 0
 fi
 mkdir -p "$BUILD"
-if [ ! -e "$SYSROOT/.cross-devel-extracted" ]; then
-	rm -rf "$SYSROOT"
-	mkdir -p "$SYSROOT"
-	for package in "$CROSS_DEVEL" "$RUNTIME" "$DEVEL"; do
-		"$PACKAGE" extract -C "$SYSROOT" "$package"
-	done
-	touch "$SYSROOT/.cross-devel-extracted"
-fi
 export PATH="$CROSS_TOOLS/bin:$PATH"
 export LD_LIBRARY_PATH="$GENERATED/objects/linux/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+if [ ! -e "$SYSROOT/.cross-devel-extracted" ]; then
+	rm -rf "$SYSROOT"
+	mkdir -p "$SYSROOT/boot/system"
+	for package in "$CROSS_DEVEL" "$RUNTIME" "$DEVEL"; do
+		"$PACKAGE" extract -C "$SYSROOT/boot/system" "$package"
+	done
+	test -s "$SYSROOT/boot/system/develop/headers/posix/stdlib.h"
+	touch "$SYSROOT/.cross-devel-extracted"
+fi
 cd "$BUILD"
 if [ ! -e .configured ]; then
 	"$WORKPATH/src/buildtools/gcc/configure" 		--prefix="$CROSS_TOOLS" --target=aarch64-unknown-haiku 		--disable-nls --disable-shared --with-system-zlib --enable-languages=c,c++,fortran 		--enable-lto --enable-frame-pointer --enable-__cxa-atexit --enable-threads=posix 		--with-default-libstdcxx-abi=gcc4-compatible --with-sysroot="$SYSROOT" 		--disable-maintainer-mode --disable-libgomp --disable-libatomic --disable-multilib
