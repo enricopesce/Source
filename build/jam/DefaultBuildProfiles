@@ -181,7 +181,11 @@ rule DefineDefaultBuildProfiles
 					;
 				AddHaikuImageSystemPackages netsurf ;
 				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
-					AddHaikuImageSystemPackages haikuports_source ;
+					if ! $(HAIKU_PORTS_SOURCE_PACKAGE) {
+						Exit "HAIKU_PORTS_SOURCE_PACKAGE must point to the pinned HaikuPorts HPKG" ;
+					}
+					AddPackageFilesToHaikuImage system packages
+						: $(HAIKU_PORTS_SOURCE_PACKAGE) : nameFromMetaInfo ;
 				}
 				AddPackageFilesToHaikuImage system packages : haiku_devel.hpkg
 					: nameFromMetaInfo ;

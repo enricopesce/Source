@@ -32,6 +32,8 @@ CROSS_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPortsCross-build"
 BOOTSTRAP_PACKAGE_REPOSITORY="$CROSS_REPOSITORY/packages"
 PORT_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPorts-sources-build"
 PORT_PACKAGES="$PORT_REPOSITORY/packages"
+HAIKU_PORTS_SOURCE_PACKAGE="$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg"
+export HAIKU_PORTS_SOURCE_PACKAGE
 HOST_TOOLS="$GENERATED/objects/linux/x86_64/release/tools"
 UNBOOTSTRAP="$GENERATED/.unbootstrap"
 
@@ -181,7 +183,7 @@ build_port() {
 build_haikuports_source_package() {
 	local source_revision package_file package_root package_contents package_info
 	source_revision=$(git -C "$WORKPATH/src/haikuports" rev-parse HEAD)
-	package_file="$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg"
+	package_file="$HAIKU_PORTS_SOURCE_PACKAGE"
 	package_root="$GENERATED/haikuports-source-package"
 	package_contents="$package_root/boot/system/data/haikuports"
 	package_info="$GENERATED/haikuports-source.PackageInfo"
@@ -209,7 +211,6 @@ provides { haikuports_source = 1.0.0 }
 requires { haiku }
 EOF
 	package create -q -C "$package_root" -i "$package_info" "$package_file"
-	cp -f "$package_file" "$PORT_PACKAGES/"
 	rm -f "$package_info"
 	echo "Packaged HaikuPorts Git checkout at $source_revision"
 }
