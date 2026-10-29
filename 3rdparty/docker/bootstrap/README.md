@@ -43,7 +43,8 @@ files already produced in generated.arm64:
 - make bootstrap WORKDIR=... continues Jam's bootstrap build.
 - make build-cross-fortran WORKDIR=... builds the cross-Fortran compiler.
 - After those stages complete, make nightly-mmc RESUME=1 WORKDIR=... resumes
-  package creation and image generation without repeating them.
+  package creation and image generation. It repairs the cross-Fortran sysroot
+  link HaikuPorter expects, without rebuilding an existing compiler.
 
 RESUME=1 requires the source checkouts and bootstrap outputs to exist. Use it
 only after the toolchain and bootstrap stages completed. The profile build

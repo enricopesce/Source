@@ -23,6 +23,17 @@ for input in "$CROSS_TOOLS/bin/aarch64-unknown-haiku-gcc" "$PACKAGE" "$CROSS_DEV
 		exit 1
 	fi
 done
+# HaikuPorter updates this canonical cross-tools sysroot per port. Keep it
+# pointed at the sysroot used when GCC was configured.
+if [ -d "$CROSS_TOOLS/sysroot" ] && [ ! -L "$CROSS_TOOLS/sysroot" ]; then
+	if [ -n "$(find "$CROSS_TOOLS/sysroot" -mindepth 1 -print -quit)" ]; then
+		echo "Refusing to replace non-empty cross-tools sysroot: $CROSS_TOOLS/sysroot" >&2
+		exit 1
+	fi
+	rmdir "$CROSS_TOOLS/sysroot"
+fi
+ln -sfn "$SYSROOT" "$CROSS_TOOLS/sysroot"
+
 if [ -x "$CROSS_TOOLS/bin/aarch64-unknown-haiku-gfortran" ] && [ -x "$CROSS_TOOLS/libexec/gcc/aarch64-unknown-haiku/$GCC_VERSION/f951" ]; then
 	echo "ARM64 cross-GFortran is already available: $CROSS_TOOLS/bin/aarch64-unknown-haiku-gfortran"
 	exit 0

@@ -18,6 +18,7 @@ if [ "${RESUME:-0}" = 1 ]; then
 		exit 1
 	fi
 	echo "Resuming ARM64 build in $WORKPATH/$BUILD_DIR_NAME"
+	build-cross-fortran
 else
 	prep
 	crosstools
