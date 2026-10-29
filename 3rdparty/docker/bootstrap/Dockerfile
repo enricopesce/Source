@@ -10,7 +10,7 @@ RUN sed -i \
 	&& apt-get -o Acquire::Check-Valid-Until=false update
 
 # Base Haiku requirements
-RUN apt-get install -y git nasm autoconf automake autopoint texinfo \
+RUN apt-get install -y git nasm autoconf automake autoconf-archive autopoint texinfo \
 	flex bison gawk build-essential unzip wget zip less zlib1g-dev \
 	libzstd-dev libcurl4-openssl-dev genisoimage libtool \
 	mtools gcc-multilib u-boot-tools util-linux device-tree-compiler bc attr

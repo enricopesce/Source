@@ -15,6 +15,8 @@ the fixed Debian snapshot in the Dockerfile. Build dependencies are installed
 inside the container image; the host does not need those packages.
 Autoconf 2.72 is installed from the official GNU release tarball with a
 SHA-256 check, since the pinned Bookworm snapshot provides 2.71.
+The container also installs the autoconf-archive macros from the pinned
+Debian snapshot, so the patched Python configure script can be regenerated.
 
 ## Reproduce the ARM64 nightly image
 
