@@ -67,6 +67,14 @@ RUN ln -s /opt/python3.10/bin/python3.10 /usr/local/bin/python3.10 \
     && ln -s /opt/python3.14/bin/python3.14 /usr/local/bin/python3.14 \
     && python3.10 --version | grep -Fq 3.10.22 \
     && python3.14 --version | grep -Fq 3.14.9
+ARG BUILD_INSTALLER_VERSION=1.0.1
+ARG BUILD_INSTALLER_WHEEL_SHA256=011d045df8b954ced7dde3a7e42ae4418da40ecda7990f2d11d5ed7c146fd98b
+RUN set -eux; \
+    printf "%s\n" "installer==${BUILD_INSTALLER_VERSION} --hash=sha256:${BUILD_INSTALLER_WHEEL_SHA256}" > /tmp/haiku-host-build-requirements.txt; \
+    python3 -m pip install --disable-pip-version-check --no-cache-dir --no-compile --no-deps --require-hashes --target=/opt/python3.10/lib/python3.10/site-packages -r /tmp/haiku-host-build-requirements.txt; \
+    python3 -m pip install --disable-pip-version-check --no-cache-dir --no-compile --no-deps --require-hashes --target=/opt/python3.14/lib/python3.14/site-packages -r /tmp/haiku-host-build-requirements.txt; \
+    python3.10 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}'"; \
+    python3.14 -c "from importlib.metadata import version; assert version('installer') == '${BUILD_INSTALLER_VERSION}'"
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc

@@ -21,6 +21,8 @@ The container builds native CPython 3.10.22 and 3.14.9 interpreters from
 official source tarballs with SHA-256 checks. The pinned HaikuPorts flit-core
 recipe assembles subpackages for both versions, so both versioned host commands
 are available to package scripts. The base python3 remains Python 3.12.
+The host installer 1.0.1 wheel is pinned by SHA-256 and installed for both
+interpreters; HaikuPorts uses it to install pure-Python wheels during cross builds.
 Python 3.14's cross configure uses the matching 3.14 host interpreter.
 Python 3.10.22 is the final 3.10 release and is included only as a build tool
 while the pinned ports still package that version.
