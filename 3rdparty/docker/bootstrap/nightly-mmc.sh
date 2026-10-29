@@ -78,6 +78,7 @@ if [ ! -s "$HPORTS_CONFIG" ] || [ ! -s "$CROSS_DEVEL_PACKAGE" ] || [ ! -s "$HAIK
 	echo "Missing HaikuPorter cross-build inputs under $PACKAGE_ROOT"
 	exit 1
 fi
+mkdir -p "$GENERATED/download"
 cp -f "$HAIKU_RUNTIME_PACKAGE" "$HAIKU_DEVEL_PACKAGE" "$GENERATED/download/"
 
 mwx_firmware_archive="$GENERATED/download/mwx-firmware-20260309p0.tgz"
