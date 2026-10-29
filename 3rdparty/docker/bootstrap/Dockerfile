@@ -48,6 +48,25 @@ RUN set -eux; \
     /opt/python3.14/bin/python3.14 -c "import hashlib, pathlib, sys, sysconfig; assert sys.version_info[:2] == (3, 14)"; \
     cd /; \
     rm -rf "/tmp/Python-${BUILD_PYTHON_VERSION}" "/tmp/Python-${BUILD_PYTHON_VERSION}.tar.xz"
+# The pinned flit-core recipe assembles Python 3.10 and 3.14 subpackages.
+ARG BUILD_PYTHON310_VERSION=3.10.22
+ARG BUILD_PYTHON310_SHA256=c61fe9b1a1a7ec2a0b0388e664187c378a5325a89e3606d220abf5bdfccb2543
+RUN set -eux; \
+    cd /tmp; \
+    wget -q "https://www.python.org/ftp/python/${BUILD_PYTHON310_VERSION}/Python-${BUILD_PYTHON310_VERSION}.tar.xz"; \
+    echo "${BUILD_PYTHON310_SHA256}  Python-${BUILD_PYTHON310_VERSION}.tar.xz" | sha256sum --check --strict -; \
+    tar -xf "Python-${BUILD_PYTHON310_VERSION}.tar.xz"; \
+    cd "Python-${BUILD_PYTHON310_VERSION}"; \
+    ./configure --prefix=/opt/python3.10 --with-ensurepip=no --disable-test-modules; \
+    make -j"$(nproc)"; \
+    make install; \
+    /opt/python3.10/bin/python3.10 -c "import hashlib, pathlib, sys, sysconfig; assert sys.version_info[:2] == (3, 10)"; \
+    cd /; \
+    rm -rf "/tmp/Python-${BUILD_PYTHON310_VERSION}" "/tmp/Python-${BUILD_PYTHON310_VERSION}.tar.xz"
+RUN ln -s /opt/python3.10/bin/python3.10 /usr/local/bin/python3.10 \
+    && ln -s /opt/python3.14/bin/python3.14 /usr/local/bin/python3.14 \
+    && python3.10 --version | grep -Fq 3.10.22 \
+    && python3.14 --version | grep -Fq 3.14.9
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc
