@@ -17,6 +17,10 @@ Autoconf 2.72 is installed from the official GNU release tarball with a
 SHA-256 check, since the pinned Bookworm snapshot provides 2.71.
 The container also installs the autoconf-archive macros from the pinned
 Debian snapshot, so the patched Python configure script can be regenerated.
+The container builds a native CPython 3.14.9 interpreter from the official
+source tarball with a SHA-256 check. Python 3.14's cross configure requires a
+build interpreter with the same 3.14 minor version; the HaikuPorts recipe uses
+this interpreter when it is available in the container.
 
 ## Reproduce the ARM64 nightly image
 

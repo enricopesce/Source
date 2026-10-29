@@ -14,7 +14,9 @@ RUN apt-get install -y git nasm autoconf automake autoconf-archive autopoint tex
 	flex bison gawk build-essential unzip wget zip less zlib1g-dev \
 	libzstd-dev libcurl4-openssl-dev genisoimage libtool \
 	mtools gcc-multilib u-boot-tools util-linux device-tree-compiler bc attr
-RUN apt-get install -y cmake pkg-config libncurses-dev
+RUN apt-get install -y cmake pkg-config libncurses-dev \
+    libssl-dev libffi-dev libbz2-dev libreadline-dev libsqlite3-dev \
+    liblzma-dev libncursesw5-dev uuid-dev
 
 # Debian Bookworm provides Autoconf 2.71; Python 3.14 ports require 2.72.
 ARG AUTOCONF_VERSION=2.72
@@ -31,6 +33,21 @@ RUN set -eux; \
     autoconf --version | grep -Fq "${AUTOCONF_VERSION}"; \
     cd /; \
     rm -rf "/tmp/autoconf-${AUTOCONF_VERSION}" "/tmp/autoconf-${AUTOCONF_VERSION}.tar.xz"
+# Python 3.14 cross builds need a native interpreter of the same minor version.
+ARG BUILD_PYTHON_VERSION=3.14.9
+ARG BUILD_PYTHON_SHA256=e02d9ac21cebda6e46435369744a92c65cc7cd8669697694122cf97ffacd1e53
+RUN set -eux; \
+    cd /tmp; \
+    wget -q "https://www.python.org/ftp/python/${BUILD_PYTHON_VERSION}/Python-${BUILD_PYTHON_VERSION}.tar.xz"; \
+    echo "${BUILD_PYTHON_SHA256}  Python-${BUILD_PYTHON_VERSION}.tar.xz" | sha256sum --check --strict -; \
+    tar -xf "Python-${BUILD_PYTHON_VERSION}.tar.xz"; \
+    cd "Python-${BUILD_PYTHON_VERSION}"; \
+    ./configure --prefix=/opt/python3.14 --with-ensurepip=no --disable-test-modules; \
+    make -j"$(nproc)"; \
+    make install; \
+    /opt/python3.14/bin/python3.14 -c "import hashlib, pathlib, sys, sysconfig; assert sys.version_info[:2] == (3, 14)"; \
+    cd /; \
+    rm -rf "/tmp/Python-${BUILD_PYTHON_VERSION}" "/tmp/Python-${BUILD_PYTHON_VERSION}.tar.xz"
 RUN apt-get install -y vim nano
 RUN echo "source /usr/share/vim/vim80/defaults.vim" > ~/.vimrc
 RUN echo "set mouse=" >> ~/.vimrc
