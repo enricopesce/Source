@@ -28,7 +28,7 @@ fi
 GENERATED="$WORKPATH/$BUILD_DIR_NAME"
 PACKAGE_ROOT="$GENERATED/objects/haiku/$TARGET_ARCH/packaging"
 CROSS_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPortsCross-build"
-BOOTSTRAP_PACKAGES="$CROSS_REPOSITORY/packages/.obsolete"
+BOOTSTRAP_PACKAGE_REPOSITORY="$CROSS_REPOSITORY/packages"
 PORT_REPOSITORY="$PACKAGE_ROOT/repositories/HaikuPorts-sources-build"
 PORT_PACKAGES="$PORT_REPOSITORY/packages"
 HOST_TOOLS="$GENERATED/objects/linux/x86_64/release/tools"
@@ -48,9 +48,12 @@ if [ "${RESUME:-0}" = 1 ] && [ -e "$UNBOOTSTRAP/.converted" ]; then
 	echo "Reusing converted bootstrap packages"
 else
 	mkdir -p "$UNBOOTSTRAP/packages"
-bootstrap_inputs=("$BOOTSTRAP_PACKAGES"/*_bootstrap*.hpkg)
+bootstrap_inputs=("$BOOTSTRAP_PACKAGE_REPOSITORY/.obsolete"/*_bootstrap*.hpkg)
 if [ ${#bootstrap_inputs[@]} -eq 0 ]; then
-	echo "No bootstrap packages found in $BOOTSTRAP_PACKAGES"
+	bootstrap_inputs=("$BOOTSTRAP_PACKAGE_REPOSITORY"/*_bootstrap*.hpkg)
+fi
+if [ ${#bootstrap_inputs[@]} -eq 0 ]; then
+	echo "No bootstrap packages found under $BOOTSTRAP_PACKAGE_REPOSITORY"
 	exit 1
 fi
 cp "${bootstrap_inputs[@]}" "$UNBOOTSTRAP/packages/"
