@@ -178,6 +178,13 @@ build_port() {
 	unset "BUILDING_PORTS[$port_name]"
 	build_port "$port_name" "$required_output" "$((depth + 1))"
 }
+# Jam treats unavailable image packages as warnings, so ensure NetSurf has
+# been built before it assembles the ARM64 nightly image.
+if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
+	echo "Building selected ARM64 GUI browser (NetSurf)"
+	build_port netsurf ""
+fi
+
 while ! jam -q @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
