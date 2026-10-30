@@ -98,12 +98,17 @@ The ARM64 development package selection is defined in
 `libtool`, `libarchive`, `libarchive_devel`, `libuv_devel`, `rhash_devel`,
 `isl_devel` and `xxhash_devel`, plus `haiku_devel.hpkg`.
 
-The ARM64 profile also requests the graphical NetSurf browser, built from the pinned HaikuPorts checkout and its dependency closure. The recipe declares all architectures; a successful ARM64 build is verified by completing this profile.
-NetSurf needs `nsgenbind` while building. Since the HaikuPorts package is a target ARM64 executable and cannot run on the Linux builder, the driver builds a host-native copy from the same pinned `nsgenbind` and NetSurf build-system sources using the container's GCC, Bison, and Flex. It records the host triplet, GCC version, and helper hash in the image build-info.
-For `nightly-mmc`, the pinned HaikuPorts fork is installed at `/boot/system/data/haikuports` with its `.git` metadata. The image also includes a `haikuporter` command built from the pinned HaikuPorter fork, its source checkout at `/boot/system/data/haikuporter`, and the native ARM64 Python 3.14 runtime it requires. Both source trees are inside activated packages; copy them to writable storage (for example, `cp -a /boot/system/data/haikuports ~/haikuports` and `cp -a /boot/system/data/haikuporter ~/haikuporter`) before editing. The Linux Podman container stays outside Haiku. The image can use its native toolchain and HaikuPorter to build ports; the full Haiku OS image pipeline still runs on the external Linux builder.
+NetSurf is deliberately not installed in the image. Its ARM64 recipe remains in the pinned HaikuPorts tree so developers can build it natively after booting Haiku.
 
-The selected packages and their transitive dependencies are built from the
-HaikuPorts revision in `sources.lock` when they are missing, then included in
-the generated image. This is a cross-build on Linux x86_64; QEMU is not part
-of image generation. The build provenance is recorded beside the image in
-`haiku-mmc.image.build-info`.
+The `nightly-mmc` image includes the pinned HaikuPorts checkout at `/boot/system/data/haikuports`, the HaikuPorter source checkout at `/boot/system/data/haikuporter`, a `haikuporter` command, its native ARM64 Python 3.14 runtime, and the development toolchain listed above. The checkouts are inside activated packages; copy them to writable storage before building:
+
+    cp -a /boot/system/data/haikuports ~/haikuports
+    cp -a /boot/system/data/haikuporter ~/haikuporter
+    mkdir -p ~/config/settings
+    cp ~/haikuporter/haikuports-sample.conf ~/config/settings/haikuports.conf
+
+Edit `~/config/settings/haikuports.conf`: set `TREE_PATH` to `/boot/home/haikuports` and replace the sample `PACKAGER` value. Then, from Haiku, build NetSurf and any missing dependencies with:
+
+    haikuporter -j2 --get-dependencies netsurf
+
+The command fetches sources and builds the port in Haiku. NetSurf and its runtime dependencies are not copied into the generated image. The full Haiku OS image pipeline remains a cross-build on Linux x86_64; QEMU is not part of image generation. Build provenance is recorded beside the image in `haiku-mmc.image.build-info`.

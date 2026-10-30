@@ -284,51 +284,8 @@ EOF
 	rm -f "$package_info"
 	echo "Packaged HaikuPorter fork at $source_revision"
 }
-build_host_nsgenbind() {
-	local nsgenbind_makefile buildsystem_makefile nsgenbind_source buildsystem_dir host_triplet build_dir
-	nsgenbind_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
-		-path '*/sources/nsgenbind-*/Makefile' -print -quit)
-	buildsystem_makefile=$(find "$PORT_REPOSITORY/dev-build/netsurf_buildsystem" -type f \
-		-path '*/sources/buildsystem-*/makefiles/Makefile.top' -print -quit)
-	if [ -z "$nsgenbind_makefile" ] || [ -z "$buildsystem_makefile" ]; then
-		echo "Cannot locate the pinned nsgenbind and NetSurf build-system sources" >&2
-		return 1
-	fi
-	nsgenbind_source=${nsgenbind_makefile%/Makefile}
-	buildsystem_dir=${buildsystem_makefile%/makefiles/Makefile.top}
-	host_triplet=$(/usr/bin/gcc -dumpmachine)
-	build_dir="build-${host_triplet}-${host_triplet}-release-binary"
-	echo "Building host nsgenbind for $host_triplet from the pinned HaikuPorts source"
-	make -C "$nsgenbind_source" \
-		BUILD="$host_triplet" HOST="$host_triplet" VARIANT=release \
-		CC=/usr/bin/gcc BUILD_CC=/usr/bin/gcc \
-		NSSHARED="$buildsystem_dir" NSBUILD="$buildsystem_dir/makefiles" \
-		BUILDDIR="$build_dir" PREFIX=/usr -j"${BUILD_JOBS:-2}"
-	cp -f "$nsgenbind_source/$build_dir/nsgenbind" "$WORKPATH/bin/nsgenbind"
-	chmod 0755 "$WORKPATH/bin/nsgenbind"
-}
 build_haikuports_source_package
 build_haikuporter_runtime_package
-# Jam treats unavailable image packages as warnings, so ensure NetSurf has
-# been built before it assembles the ARM64 nightly image.
-if ! compgen -G "$PORT_PACKAGES/netsurf-*-arm64.hpkg" >/dev/null; then
-	echo "Preparing host build tool nsgenbind"
-	nsgenbind_source_makefile=$(find "$PORT_REPOSITORY/dev-libs/nsgenbind" -type f \
-		-path '*/sources/nsgenbind-*/Makefile' -print -quit)
-	if ! compgen -G "$PORT_PACKAGES/nsgenbind-*-arm64.hpkg" >/dev/null || \
-		[ -z "$nsgenbind_source_makefile" ]; then
-		build_port nsgenbind ""
-	fi
-	build_host_nsgenbind
-	echo "Building selected ARM64 GUI browser (NetSurf)"
-	build_port netsurf ""
-fi
-
-netsurf_packages=("$PORT_PACKAGES"/netsurf-*-arm64.hpkg)
-if [ ${#netsurf_packages[@]} -ne 1 ]; then
-	echo "Expected one ARM64 NetSurf package, found ${#netsurf_packages[@]}" >&2
-	exit 1
-fi
 if ! compgen -G "$PORT_PACKAGES/python3.14-*-arm64.hpkg" >/dev/null; then
 	echo "Building ARM64 Python 3.14 runtime for native HaikuPorter"
 	build_port python3.14 ""
@@ -342,7 +299,7 @@ haikuporter_package="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
 HAIKU_LOCAL_RUNTIME_PACKAGES_FILE="$GENERATED/local-runtime-packages.jam"
 HAIKU_IMAGE_BASE_PACKAGES="bzip2 file git libiconv libjpeg_turbo libpng16 openssl3 xz_utils zlib zstd"
 export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
-local_runtime_roots=("${netsurf_packages[0]}" "$haikuporter_package" "${python314_packages[0]}")
+local_runtime_roots=("$haikuporter_package" "${python314_packages[0]}")
 {
 	printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
 	/usr/local/bin/resolve-hpkg-dependencies \
@@ -390,10 +347,8 @@ manifest_temporary="$manifest.part"
 	printf 'build_driver_revision=%s\n' "${BUILD_DRIVER_REV:-unrecorded}"
 	printf 'host_build_machine=%s\n' "$(/usr/bin/gcc -dumpmachine)"
 	printf 'host_gcc_version=%s\n' "$(/usr/bin/gcc -dumpfullversion)"
-	printf 'host_nsgenbind_sha256=%s\n' "$(sha256sum "$WORKPATH/bin/nsgenbind" | cut -d' ' -f1)"
 	printf 'haikuports_source_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuports_source-1.0.0-1-any.hpkg" | cut -d' ' -f1)"
 	printf 'haikuporter_runtime_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuporter-1.5.3-2-any.hpkg" | cut -d' ' -f1)"
-	printf 'netsurf_package_sha256=%s\n' "$(sha256sum "${netsurf_packages[0]}" | cut -d' ' -f1)"
 	printf 'python314_package_sha256=%s\n' "$(sha256sum "${python314_packages[0]}" | cut -d' ' -f1)"
 	printf 'local_runtime_package_list_sha256=%s\n' "$(sha256sum "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE" | cut -d' ' -f1)"
 	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do

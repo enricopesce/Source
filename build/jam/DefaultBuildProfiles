@@ -188,8 +188,6 @@ rule DefineDefaultBuildProfiles
 					}
 					AddPackageFilesToHaikuImage system packages
 						: $(HAIKU_LOCAL_RUNTIME_PACKAGES) : nameFromMetaInfo ;
-				} else {
-					AddHaikuImageSystemPackages netsurf ;
 				}
 				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
 					if ! $(HAIKU_PORTS_SOURCE_PACKAGE) {
