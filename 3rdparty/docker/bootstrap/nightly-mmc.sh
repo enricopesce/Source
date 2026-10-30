@@ -203,12 +203,13 @@ build_port() {
 	unset "BUILDING_PORTS[$port_name]"
 	build_port "$port_name" "$required_output" "$((depth + 1))"
 }
+# HPKG entries are relative to /boot/system; omit the boot/system prefix here.
 build_haikuports_source_package() {
 	local source_revision package_file package_root package_contents package_info
 	source_revision=$(git -C "$WORKPATH/src/haikuports" rev-parse HEAD)
 	package_file="$HAIKU_PORTS_SOURCE_PACKAGE"
 	package_root="$GENERATED/haikuports-source-package"
-	package_contents="$package_root/boot/system/data/haikuports"
+	package_contents="$package_root/data/haikuports"
 	package_info="$GENERATED/haikuports-source.PackageInfo"
 	rm -rf "$package_root"
 	rm -f "$package_file"
@@ -242,9 +243,9 @@ build_haikuporter_runtime_package() {
 	source_revision=$(git -C "$WORKPATH/src/haikuporter" rev-parse HEAD)
 	package_file="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
 	package_root="$GENERATED/haikuporter-runtime-package"
-	package_contents="$package_root/boot/system/data/haikuporter"
+	package_contents="$package_root/data/haikuporter"
 	package_info="$GENERATED/haikuporter-renkuos.PackageInfo"
-	wrapper="$package_root/boot/system/bin/haikuporter"
+	wrapper="$package_root/bin/haikuporter"
 	rm -rf "$package_root"
 	rm -f "$package_file"
 	mkdir -p "$package_contents" "${wrapper%/*}" "$GENERATED/download"
