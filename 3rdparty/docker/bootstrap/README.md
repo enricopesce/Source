@@ -88,7 +88,7 @@ the build definition with the update.
 
 ## ARM64 development image contents
 
-Haiku package archive paths are relative to : use entries such as , , and . Do not include  inside an ; Haiku exposes those entries under  when the package is activated.
+Haiku package archive paths are relative to `/boot/system/`: use entries such as `bin/`, `data/`, and `develop/`. Do not include `boot/system/` inside an `.hpkg`; Haiku exposes those entries under `/boot/system/` when the package is activated.
 
 The ARM64 development package selection is defined in
 [DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by
