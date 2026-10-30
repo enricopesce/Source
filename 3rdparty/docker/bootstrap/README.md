@@ -88,6 +88,8 @@ the build definition with the update.
 
 ## ARM64 development image contents
 
+Haiku package archive paths are relative to : use entries such as , , and . Do not include  inside an ; Haiku exposes those entries under  when the package is activated.
+
 The ARM64 development package selection is defined in
 [DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by
 `nightly-mmc`. It includes `binutils`, `gcc`, `gcc_fortran`, `git`, `make`,
