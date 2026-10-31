@@ -62,7 +62,7 @@ gettext_libintl_devel-1.0-1
 git-2.56.0-2
 	cmake-4.4.4-4
 	ninja-1.13.2-4
-	gdb-17.2-2
+	gdb-17.2-3
 	rhash-1.4.6-3
 	rhash_devel-1.4.6-3
 	libuv-1.52.1-4
@@ -119,7 +119,7 @@ mpc_devel-1.2.1-2
 mpfr-4.2.0-3
 mpfr_devel-4.2.0-3
 nano-9.1-1
-ncurses6-6.6-1
+ncurses6-6.6-2
 ncurses6_devel-6.6-1
 nghttp2-1.63.0-1
 nghttp2_devel-1.63.0-1
