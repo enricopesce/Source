@@ -13,6 +13,8 @@ import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
+# Keep this list aligned with HaikuPorter's Policy.allowedTopLevelEntries.
+# Haiku core packages have a few image-layout roots that ports may not use.
 SYSTEM_DIRECTORIES = {
     "add-ons",
     "apps",
@@ -20,18 +22,16 @@ SYSTEM_DIRECTORIES = {
     "boot",
     "cache",
     "data",
-    "demos",
     "develop",
     "documentation",
     "lib",
     "non-packaged",
-    "packages",
     "preferences",
     "servers",
     "settings",
     "var",
 }
-CORE_HAIKU_ROOT_FILES = {"Deskbar", "Tracker", "runtime_loader"}
+CORE_HAIKU_ROOT_ENTRIES = {"Deskbar", "Tracker", "runtime_loader", "demos"}
 CORE_HAIKU_BOOT_PATHS = {"first-login", "PostInstallScript", "SetupEnvironment"}
 STAGING_SEGMENTS = {
     ".self",
@@ -165,7 +165,7 @@ def audit_entries(package_tool: Path, archive: Path, package_name: str) -> list[
         top = parts[0]
         standard_root = top in SYSTEM_DIRECTORIES
         haiku_core_root = package_name == "haiku" and (
-            top in CORE_HAIKU_ROOT_FILES
+            top in CORE_HAIKU_ROOT_ENTRIES
             or top == "kernel_arm64"
         )
         loader_root = package_name == "haiku_loader" and top == "haiku_loader.efi"
