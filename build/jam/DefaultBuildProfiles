@@ -175,11 +175,15 @@ rule DefineDefaultBuildProfiles
 				}@
 				;
 			if $(HAIKU_PACKAGING_ARCHS) = arm64 {
-				# Include the native ARM64 compiler, source control, build tools, and generators.
+				# Use the pinned HaikuPorts builds for Git, Perl, and CMake in nightly-mmc.
+				local haikuPortsPathFixedPackages = git perl cmake ;
+				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {
+					haikuPortsPathFixedPackages = ;
+				}
 				AddHaikuImageSystemPackages
-					binutils gcc gcc_fortran git make m4 perl python3.10 file mpfr mpc texinfo openssl3_devel libjpeg_turbo_devel libpng16_devel zlib_devel zstd_devel jam mawk mkdepend nasm patch libiconv_devel
+					binutils gcc gcc_fortran $(haikuPortsPathFixedPackages) make m4 python3.10 file mpfr mpc texinfo openssl3_devel libjpeg_turbo_devel libpng16_devel zlib_devel zstd_devel jam mawk mkdepend nasm patch libiconv_devel
 					autoconf automake bison flex pkgconfig
-					cmake ninja gdb libtool libarchive
+					ninja gdb libtool libarchive
 				libarchive_devel libuv_devel rhash_devel isl_devel xxhash_devel
 					;
 				if $(HAIKU_BUILD_PROFILE) = nightly-mmc {

@@ -144,7 +144,9 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ]
 
 # Git
 if [ IsOptionalHaikuImagePackageAdded Git ] {
-	AddHaikuImageSystemPackages git@!gcc2 git_x86@secondary_x86 perl@!gcc2 perl_x86@secondary_x86 ;
+	if $(HAIKU_BUILD_PROFILE) != nightly-mmc {
+		AddHaikuImageSystemPackages git@!gcc2 git_x86@secondary_x86 perl@!gcc2 perl_x86@secondary_x86 ;
+	}
 	AddHaikuImageSourcePackages git@!gcc2 git_x86@secondary_x86 perl@!gcc2 perl_x86@secondary_x86 ;
 }
 
