@@ -10,7 +10,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path, PurePosixPath
 
 # Keep this list aligned with HaikuPorter's Policy.allowedTopLevelEntries.
@@ -136,7 +135,9 @@ def resolve_package_ref(ref: str, generated: Path, target_arch: str) -> tuple[Pa
     raise FileNotFoundError(f"selected HPKG is missing: {ref}")
 
 
-def audit_entries(package_tool: Path, archive: Path, package_name: str) -> list[str]:
+def audit_entries(
+    package_tool: Path, archive: Path, package_name: str, target_arch: str = "arm64"
+) -> list[str]:
     process = subprocess.run(
         [str(package_tool), "list", "-p", str(archive)],
         check=False,
@@ -185,7 +186,10 @@ def audit_entries(package_tool: Path, archive: Path, package_name: str) -> list[
         if any(
             part in STAGING_SEGMENTS
             or re.fullmatch(r"work-[0-9][A-Za-z0-9._+-]*", part)
-            or re.fullmatch(r"generated\.[A-Za-z0-9_+-]+", part)
+            or re.fullmatch(
+                rf"generated\.{re.escape(target_arch)}(?:[-_][A-Za-z0-9_+-]+)*",
+                part,
+            )
             for part in parts
         ):
             issues.append(f"build path leaked into package: {entry}")
@@ -196,27 +200,26 @@ def audit_entries(package_tool: Path, archive: Path, package_name: str) -> list[
 def package_metadata(
     package_tool: Path, archive: Path
 ) -> tuple[str, str, str]:
-    with tempfile.TemporaryDirectory(prefix="haiku-hpkg-metadata-") as temporary:
-        info_path = Path(temporary) / "PackageInfo"
-        process = subprocess.run(
-            [str(package_tool), "extract", "-i", str(info_path), str(archive)],
-            check=False,
-            text=True,
-            capture_output=True,
-            env=os.environ.copy(),
+    process = subprocess.run(
+        [str(package_tool), "list", "-i", str(archive)],
+        check=False,
+        text=True,
+        capture_output=True,
+        env=os.environ.copy(),
+    )
+    if process.returncode != 0:
+        raise RuntimeError(
+            f"cannot read package metadata for {archive.name}: "
+            f"{process.stderr.strip() or process.stdout.strip()}"
         )
-        if process.returncode != 0:
-            raise RuntimeError(
-                f"cannot read package metadata for {archive.name}: "
-                f"{process.stderr.strip() or process.stdout.strip()}"
-            )
-        info = info_path.read_text(encoding="utf-8", errors="replace")
 
     fields: dict[str, str] = {}
     for field in ("name", "version", "architecture"):
-        match = re.search(rf"^\s*{field}\s+(.+?)\s*$", info, re.MULTILINE)
+        match = re.search(
+            rf"^\s*{field}:\s*(.*?)\s*$", process.stdout, re.MULTILINE
+        )
         if match:
-            fields[field] = match.group(1).strip().strip('"')
+            fields[field] = match.group(1)
     if any(field not in fields for field in ("name", "version", "architecture")):
         raise RuntimeError(f"invalid name/version/architecture metadata in {archive.name}")
     return fields["name"], fields["version"], fields["architecture"]
@@ -252,7 +255,7 @@ def main() -> int:
                         f"package architecture is {architecture}, expected "
                         f"{args.target_arch} or any"
                     )
-                issues = audit_entries(args.package_tool, archive, name)
+                issues = audit_entries(args.package_tool, archive, name, args.target_arch)
                 if issues:
                     failures.extend(f"{archive.name}: {issue}" for issue in issues[:12])
                 records.append(
