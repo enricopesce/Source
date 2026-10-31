@@ -339,13 +339,13 @@ for required_package in \
 	fi
 done
 
-package_plan_log="$WORKPATH/nightly-mmc-package-plan.log"
-if ! "$HOST_JAM" -n -d2 -a @nightly-mmc >"$package_plan_log" 2>&1; then
-	echo "Could not generate package selection plan: $package_plan_log" >&2
-	tail -n 20 "$package_plan_log"
-	exit 1
+IMAGE="$GENERATED/haiku-mmc.image"
+expected_driver_revision="build_driver_revision=${BUILD_DRIVER_REV:-unrecorded}"
+if [ -s "$IMAGE" ] && ! grep -Fqx "$expected_driver_revision" "$IMAGE.build-info" 2>/dev/null; then
+	echo "Discarding image without current build provenance before rebuilding"
+	rm -f "$IMAGE"
 fi
-while ! "$HOST_JAM" -q -d2 @nightly-mmc >"$jam_log" 2>&1; do
+while ! "$HOST_JAM" -d2 @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
 		# With HAIKU_NO_DOWNLOADS, Jam reports a repository-cache failure when
@@ -380,7 +380,7 @@ package_manifest="$IMAGE.packages.tsv"
 python3 -B /usr/local/bin/audit-hpkg-paths \
 	--package-tool "$HOST_TOOLS/package/package" \
 	--generated "$GENERATED" \
-	--jam-log "$package_plan_log" \
+	--jam-log "$jam_log" \
 	--manifest "$package_manifest" \
 	--target-arch "$TARGET_ARCH"
 for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4"; do
