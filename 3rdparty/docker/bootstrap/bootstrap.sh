@@ -30,6 +30,22 @@ mkdir -p "$CROSS_SYSROOT/boot/system"
 LD_LIBRARY_PATH="$GENERATED/objects/linux/lib" "$PACKAGE_TOOL" extract -C "$CROSS_SYSROOT/boot/system" "$CROSS_DEVEL_STAGE0"
 test -s "$CROSS_SYSROOT/boot/system/develop/headers/posix/stdlib.h"
 
-HAIKU_BOOTSTRAP_SOURCES_PROFILE=@bootstrap-raw HAIKU_PORTER_EXTRA_OPTIONS="--debug" jam -q @bootstrap-raw
+BOOTSTRAP_PACKAGE_DIRECTORY="$GENERATED/objects/haiku/$TARGET_ARCH/packaging/repositories/HaikuPortsCross-build/packages"
+shopt -s nullglob
+bootstrap_runtime_packages=("$BOOTSTRAP_PACKAGE_DIRECTORY"/*.hpkg)
+filtered_runtime_packages=()
+for package in "${bootstrap_runtime_packages[@]}"; do
+	case "$package" in
+		*-source.hpkg|*_source_rigged-*|*-debuginfo.hpkg) continue ;;
+	esac
+	filtered_runtime_packages+=("$package")
+done
+if [ ${#filtered_runtime_packages[@]} -eq 0 ]; then
+	echo "No HaikuPortsCross bootstrap runtime packages found in $BOOTSTRAP_PACKAGE_DIRECTORY" >&2
+	exit 1
+fi
+bootstrap_runtime_package_list=$(IFS=,; echo "${filtered_runtime_packages[*]}")
+bootstrap_porter_options="--debug --system-packages-directory=\"$BOOTSTRAP_PACKAGE_DIRECTORY\" --cross-runtime-package=\"$bootstrap_runtime_package_list\""
+HAIKU_BOOTSTRAP_SOURCES_PROFILE=@bootstrap-raw HAIKU_PORTER_EXTRA_OPTIONS="$bootstrap_porter_options" jam -q @bootstrap-raw
 # The final nightly profile rebuilds this list after local runtime packages exist.
 rm -f "$GENERATED/objects/haiku/$TARGET_ARCH/packaging/repositories/HaikuPorts-sources-build/package_list"
