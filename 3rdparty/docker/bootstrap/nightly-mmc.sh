@@ -322,7 +322,7 @@ for required_port in git perl cmake; do
 done
 for required_package in \
 	git-2.56.0-2-arm64.hpkg \
-	perl-5.42.2-3-arm64.hpkg \
+	perl-5.42.2-4-arm64.hpkg \
 	cmake-4.4.4-4-arm64.hpkg; do
 	if [ ! -s "$GENERATED/download/$required_package" ]; then
 		echo "Pinned HaikuPorts package was not produced: $required_package" >&2
@@ -368,7 +368,7 @@ python3 -B /usr/local/bin/audit-hpkg-paths \
 	--jam-log "$jam_log" \
 	--manifest "$package_manifest" \
 	--target-arch "$TARGET_ARCH"
-for required_selection in "git 2.56.0-2" "perl 5.42.2-3" "cmake 4.4.4-4"; do
+for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4"; do
 	read -r required_name required_version <<< "$required_selection"
 	if ! awk -F '\t' -v name="$required_name" -v version="$required_version" '$1 == name && $2 == version { found = 1 } END { exit !found }' "$package_manifest"; then
 		echo "Pinned path-fixed package was not selected for the image: $required_name $required_version" >&2
