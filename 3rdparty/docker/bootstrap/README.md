@@ -44,8 +44,9 @@ out-of-layout or staging path.
     make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-work"
 
 nightly-mmc builds the container image once, checks out the commits in
-sources.lock, builds the cross-toolchain and bootstrap packages, then runs
-@nightly-mmc. Missing profile packages and their dependencies are built from
+sources.lock, builds the cross-toolchain, creates the bootstrap stage0 HPKG and
+host package tools, seeds the GCC sysroot from stage0, completes the bootstrap
+image, then runs @nightly-mmc. Missing profile packages and their dependencies are built from
 the pinned HaikuPorts checkout. The driver follows both BUILD_REQUIRES and
 BUILD_PREREQUIRES reported by HaikuPorter, including dynamically declared
 Python version subpackages, builds the pinned provider, and retries the
