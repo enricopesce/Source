@@ -128,8 +128,9 @@ build_port() {
 	local port_name="$1"
 	local required_output="${2:-}"
 	local depth="${3:-0}"
+	local force_build="${4:-0}"
 	local package dependency provider runtime_package_list
-	local -a runtime_packages port_outputs
+	local -a runtime_packages port_outputs force_options=()
 
 	if (( depth > 32 )); then
 		echo "Dependency build exceeded 32 levels at $port_name" >&2
@@ -152,11 +153,12 @@ build_port() {
 		return 1
 	fi
 	runtime_package_list=$(IFS=,; echo "${runtime_packages[*]}")
+	if [ "$force_build" = "1" ]; then force_options=(--force); fi
 	if python3 "$WORKPATH/src/haikuporter/haikuporter" \
 		--config="$HPORTS_CONFIG" \
 		--cross-devel-package "$CROSS_DEVEL_PACKAGE" \
 		--cross-runtime-package "$HAIKU_RUNTIME_PACKAGE,$HAIKU_DEVEL_PACKAGE,$runtime_package_list" \
-		--no-package-obsoletion --missing-dependencies "$port_name" \
+		"${force_options[@]}" --no-package-obsoletion --missing-dependencies "$port_name" \
 		>"$porter_log" 2>&1; then
 		port_outputs=("$PORT_PACKAGES"/*.hpkg)
 		if [ ${#port_outputs[@]} -eq 0 ]; then
@@ -201,7 +203,7 @@ build_port() {
 		return 1
 	fi
 	unset "BUILDING_PORTS[$port_name]"
-	build_port "$port_name" "$required_output" "$((depth + 1))"
+	build_port "$port_name" "$required_output" "$((depth + 1))" "$force_build"
 }
 # HPKG entries are relative to /boot/system; omit the boot/system prefix here.
 build_haikuports_source_package() {
@@ -310,7 +312,25 @@ local_runtime_roots=("$haikuporter_package" "${python314_packages[0]}")
 	printf ';\n'
 } > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
 
-while ! "$HOST_JAM" -q @nightly-mmc >"$jam_log" 2>&1; do
+# Rebuild the path-sensitive recipes from the pinned HaikuPorts fork even when
+# bootstrap caches already contain older package revisions.
+for required_port in git perl cmake; do
+	echo "Force-building pinned ARM64 port $required_port"
+	if ! build_port "$required_port" "" 0 1; then
+		exit 1
+	fi
+done
+for required_package in \
+	git-2.56.0-2-arm64.hpkg \
+	perl-5.42.2-3-arm64.hpkg \
+	cmake-4.4.4-4-arm64.hpkg; do
+	if [ ! -s "$GENERATED/download/$required_package" ]; then
+		echo "Pinned HaikuPorts package was not produced: $required_package" >&2
+		exit 1
+	fi
+done
+
+while ! "$HOST_JAM" -q -d2 @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
 		# With HAIKU_NO_DOWNLOADS, Jam reports a repository-cache failure when
@@ -341,10 +361,24 @@ done
 
 IMAGE="$GENERATED/haiku-mmc.image"
 if [ ! -s "$IMAGE" ]; then echo "Build completed without expected image: $IMAGE"; exit 1; fi
+package_manifest="$IMAGE.packages.tsv"
+python3 -B /usr/local/bin/audit-hpkg-paths \
+	--package-tool "$HOST_TOOLS/package/package" \
+	--generated "$GENERATED" \
+	--jam-log "$jam_log" \
+	--manifest "$package_manifest" \
+	--target-arch "$TARGET_ARCH"
+for required_selection in "git 2.56.0-2" "perl 5.42.2-3" "cmake 4.4.4-4"; do
+	read -r required_name required_version <<< "$required_selection"
+	if ! awk -F '\t' -v name="$required_name" -v version="$required_version" '$1 == name && $2 == version { found = 1 } END { exit !found }' "$package_manifest"; then
+		echo "Pinned path-fixed package was not selected for the image: $required_name $required_version" >&2
+		exit 1
+	fi
+done
 manifest="$IMAGE.build-info"
 manifest_temporary="$manifest.part"
 {
-	printf 'format=1\nprofile=nightly-mmc\ntarget_arch=%s\n' "$TARGET_ARCH"
+	printf 'format=2\nprofile=nightly-mmc\ntarget_arch=%s\n' "$TARGET_ARCH"
 	printf 'build_driver_revision=%s\n' "${BUILD_DRIVER_REV:-unrecorded}"
 	printf 'host_build_machine=%s\n' "$(/usr/bin/gcc -dumpmachine)"
 	printf 'host_gcc_version=%s\n' "$(/usr/bin/gcc -dumpfullversion)"
@@ -352,6 +386,14 @@ manifest_temporary="$manifest.part"
 	printf 'haikuporter_runtime_package_sha256=%s\n' "$(sha256sum "$GENERATED/download/haikuporter-1.5.3-2-any.hpkg" | cut -d' ' -f1)"
 	printf 'python314_package_sha256=%s\n' "$(sha256sum "${python314_packages[0]}" | cut -d' ' -f1)"
 	printf 'local_runtime_package_list_sha256=%s\n' "$(sha256sum "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE" | cut -d' ' -f1)"
+	printf 'package_manifest_file=%s\n' "${package_manifest##*/}"
+	printf 'package_manifest_count=%s\n' "$(awk -F '\t' 'NR > 2 { count++ } END { print count + 0 }' "$package_manifest")"
+	printf 'package_manifest_sha256=%s\n' "$(sha256sum "$package_manifest" | cut -d' ' -f1)"
+	printf 'image_sha256=%s\n' "$(sha256sum "$IMAGE" | cut -d' ' -f1)"
+	printf 'bootstrap_dockerfile_sha256=%s\n' "$(sha256sum /usr/local/share/haiku-bootstrap/Dockerfile | cut -d' ' -f1)"
+	printf 'sources_lock_sha256=%s\n' "$(sha256sum /usr/local/share/haiku-bootstrap/sources.lock | cut -d' ' -f1)"
+	printf 'container_base_image=%s\n' "$(sed -n '1s/^FROM //p' /usr/local/share/haiku-bootstrap/Dockerfile | cut -d' ' -f1)"
+	printf 'debian_snapshot=%s\n' "$(sed -n 's/^ARG DEBIAN_SNAPSHOT=//p' /usr/local/share/haiku-bootstrap/Dockerfile | head -n 1)"
 	for source_repo in buildtools haiku haikuporter haikuports haikuports.cross; do
 		printf 'source_%s_revision=%s\n' "$source_repo" "$(git -C "$WORKPATH/src/$source_repo" rev-parse HEAD)"
 	done

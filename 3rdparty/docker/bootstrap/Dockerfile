@@ -110,7 +110,9 @@ ADD nightly-mmc.sh /usr/local/bin/nightly-mmc
 ADD host-uudecode.py /usr/local/bin/haiku-host-uudecode
 ADD find-port-provider.py /usr/local/bin/find-port-provider
 ADD resolve-hpkg-dependencies.py /usr/local/bin/resolve-hpkg-dependencies
-RUN chmod 0755 /usr/local/bin/haiku-host-uudecode /usr/local/bin/find-port-provider /usr/local/bin/resolve-hpkg-dependencies
+ADD audit_hpkg_paths.py /usr/local/bin/audit-hpkg-paths
+ADD Dockerfile /usr/local/share/haiku-bootstrap/Dockerfile
+RUN chmod 0755 /usr/local/bin/haiku-host-uudecode /usr/local/bin/find-port-provider /usr/local/bin/resolve-hpkg-dependencies /usr/local/bin/audit-hpkg-paths
 ADD sources.lock /usr/local/share/haiku-bootstrap/sources.lock
 ADD patches/ /usr/local/share/haiku-bootstrap/patches/
 ADD haikuports_chroot.sh /usr/local/bin/haikuports_chroot

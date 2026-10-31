@@ -33,9 +33,12 @@ while the pinned ports still package that version.
 ## Reproduce the ARM64 nightly image
 
 Run from this directory in a clean checkout. Record the build-definition
-revision with git rev-parse HEAD; each successful image also gets a
-haiku-mmc.image.build-info file listing that revision and the exact source
-revisions used.
+revision with git rev-parse HEAD. Each successful image gets a
+haiku-mmc.image.build-info file with the pinned source revisions, image
+checksum, and package-manifest checksum. The adjacent
+haiku-mmc.image.packages.tsv records each selected package name, version,
+archive path, and SHA-256. The build stops if a selected archive is missing
+or any package contains an out-of-layout or staging path.
 
     make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-work"
 
@@ -72,8 +75,9 @@ only after the toolchain and bootstrap stages completed. The profile build
 stores its Jam and HaikuPorter logs in the selected workspace.
 
 make clean-work WORKDIR=... removes source checkouts, intermediate builds,
-package caches, and generated images. Use it only when that data can be
-discarded.
+package caches, and generated images only when the workspace has the marker
+created by these Makefile targets. It refuses home directories, symlinks,
+non-empty unmarked directories, and paths without the marker.
 
 ## Lower-level commands
 
@@ -88,7 +92,7 @@ the build definition with the update.
 
 ## ARM64 development image contents
 
-Haiku package archive paths are relative to `/boot/system/`: use entries such as `bin/`, `data/`, and `develop/`. Do not include `boot/system/` inside an `.hpkg`; Haiku exposes those entries under `/boot/system/` when the package is activated.
+Haiku package archive paths are relative to /boot/system. Use the official system directories such as bin/, data/, develop/, and documentation/. Do not include boot/system/ inside an HPKG; Haiku exposes those entries under /boot/system/ when the package is activated. The audit checks these paths against the pinned Haiku build profile and allows Haiku core boot files only in the core packages that define them.
 
 The ARM64 development package selection is defined in
 [DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by
