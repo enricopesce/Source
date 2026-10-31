@@ -321,7 +321,7 @@ if [ ${#python314_packages[@]} -ne 1 ]; then
 fi
 haikuporter_package="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
 HAIKU_LOCAL_RUNTIME_PACKAGES_FILE="$GENERATED/local-runtime-packages.jam"
-HAIKU_IMAGE_BASE_PACKAGES="bzip2 file git libiconv libjpeg_turbo libpng16 openssl3 xz_utils zlib zstd"
+HAIKU_IMAGE_BASE_PACKAGES="bzip2 file libiconv libjpeg_turbo libpng16 openssl3 xz_utils zlib zstd gcc_syslibs libarchive"
 export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
 # Build path-sensitive recipes from the pinned HaikuPorts fork when the
 # exact locked package is absent or invalid; resume can then reuse verified HPKGs.
