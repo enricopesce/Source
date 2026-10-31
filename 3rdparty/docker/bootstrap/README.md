@@ -37,8 +37,9 @@ revision with git rev-parse HEAD. Each successful image gets a
 haiku-mmc.image.build-info file with the pinned source revisions, image
 checksum, and package-manifest checksum. The adjacent
 haiku-mmc.image.packages.tsv records each selected package name, version,
-archive path, and SHA-256. The build stops if a selected archive is missing
-or any package contains an out-of-layout or staging path.
+architecture, archive path, and SHA-256. The build stops if a selected archive
+is missing, has an architecture other than arm64 or any, or contains an
+out-of-layout or staging path.
 
     make nightly-mmc WORKDIR="$HOME/haiku-nightly-mmc-work"
 
@@ -92,7 +93,7 @@ the build definition with the update.
 
 ## ARM64 development image contents
 
-Haiku package archive paths are relative to /boot/system. Use the official system directories such as bin/, data/, develop/, and documentation/. Do not include boot/system/ inside an HPKG; Haiku exposes those entries under /boot/system/ when the package is activated. The audit checks these paths against the pinned Haiku build profile and allows Haiku core boot files only in the core packages that define them.
+Haiku package archive paths are relative to /boot/system. Use the official system directories such as bin/, data/, develop/, and documentation/. Do not include boot/system/ inside an HPKG; Haiku exposes those entries under /boot/system/ when the package is activated. The audit reads every HPKG file list selected by the Jam image rules, checks that entries are relative to /boot/system and use Haiku system roots, rejects staging/build paths, and verifies each package's architecture metadata. It allows Haiku core boot files only in the core packages that define them.
 
 The ARM64 development package selection is defined in
 [DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by

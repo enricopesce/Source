@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath
 
 SYSTEM_DIRECTORIES = {
@@ -192,29 +193,33 @@ def audit_entries(package_tool: Path, archive: Path, package_name: str) -> list[
     return issues
 
 
-def package_metadata(package_tool: Path, archive: Path) -> tuple[str, str]:
-    process = subprocess.run(
-        [
-            str(package_tool),
-            "info",
-            "--format",
-            "%name%|%version%",
-            str(archive),
-        ],
-        check=False,
-        text=True,
-        capture_output=True,
-        env=os.environ.copy(),
-    )
-    if process.returncode != 0:
-        raise RuntimeError(
-            f"cannot read package metadata for {archive.name}: "
-            f"{process.stderr.strip() or process.stdout.strip()}"
+def package_metadata(
+    package_tool: Path, archive: Path
+) -> tuple[str, str, str]:
+    with tempfile.TemporaryDirectory(prefix="haiku-hpkg-metadata-") as temporary:
+        info_path = Path(temporary) / "PackageInfo"
+        process = subprocess.run(
+            [str(package_tool), "extract", "-i", str(info_path), str(archive)],
+            check=False,
+            text=True,
+            capture_output=True,
+            env=os.environ.copy(),
         )
-    fields = process.stdout.strip().split("|", 1)
-    if len(fields) != 2 or not all(fields):
-        raise RuntimeError(f"invalid package metadata for {archive.name}")
-    return fields[0], fields[1]
+        if process.returncode != 0:
+            raise RuntimeError(
+                f"cannot read package metadata for {archive.name}: "
+                f"{process.stderr.strip() or process.stdout.strip()}"
+            )
+        info = info_path.read_text(encoding="utf-8", errors="replace")
+
+    fields: dict[str, str] = {}
+    for field in ("name", "version", "architecture"):
+        match = re.search(rf"^\s*{field}\s+(.+?)\s*$", info, re.MULTILINE)
+        if match:
+            fields[field] = match.group(1).strip().strip('"')
+    if any(field not in fields for field in ("name", "version", "architecture")):
+        raise RuntimeError(f"invalid name/version/architecture metadata in {archive.name}")
+    return fields["name"], fields["version"], fields["architecture"]
 
 
 def main() -> int:
@@ -229,7 +234,7 @@ def main() -> int:
 
     try:
         refs = log_package_references(args.jam_log, args.selection_file)
-        records: list[tuple[str, str, str, str]] = []
+        records: list[tuple[str, str, str, str, str]] = []
         failures: list[str] = []
         seen_archives: set[Path] = set()
 
@@ -239,11 +244,20 @@ def main() -> int:
                 if archive in seen_archives:
                     continue
                 seen_archives.add(archive)
-                name, version = package_metadata(args.package_tool, archive)
+                name, version, architecture = package_metadata(
+                    args.package_tool, archive
+                )
+                if architecture not in {args.target_arch, "any"}:
+                    raise ValueError(
+                        f"package architecture is {architecture}, expected "
+                        f"{args.target_arch} or any"
+                    )
                 issues = audit_entries(args.package_tool, archive, name)
                 if issues:
                     failures.extend(f"{archive.name}: {issue}" for issue in issues[:12])
-                records.append((name, version, sha256_file(archive), relative))
+                records.append(
+                    (name, version, architecture, sha256_file(archive), relative)
+                )
             except Exception as error:  # report each missing or unreadable selected package
                 failures.append(f"{ref}: {error}")
 
@@ -254,13 +268,13 @@ def main() -> int:
                 print(f"FAIL ... {len(failures) - 80} further findings", file=sys.stderr)
             return 1
 
-        records.sort(key=lambda row: (row[0], row[1], row[3]))
+        records.sort(key=lambda row: (row[0], row[1], row[4]))
         args.manifest.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.manifest.with_suffix(args.manifest.suffix + ".part")
         with temporary.open("w", newline="") as stream:
-            stream.write("# format=1\n")
+            stream.write("# format=2\n")
             writer = csv.writer(stream, delimiter="\t", lineterminator="\n")
-            writer.writerow(("package", "version", "sha256", "archive"))
+            writer.writerow(("package", "version", "architecture", "sha256", "archive"))
             writer.writerows(records)
         temporary.replace(args.manifest)
         print(f"Path audit passed: {len(records)} selected packages")
