@@ -77,10 +77,12 @@ def log_package_references(log_path: Path, selection_path: Path) -> list[str]:
 
     selection_lines = selection_path.read_text(errors="replace").splitlines()
     for line in selection_lines:
-        if not line.startswith("systemPackages="):
-            continue
-        saw_system_packages = True
-        refs.extend(re.findall(r"(?<!\\$)([A-Za-z0-9_./+-]+\\.hpkg)", line))
+        for variable in ("systemPackages", "otherPackages"):
+            if not line.startswith(f"{variable}="):
+                continue
+            if variable == "systemPackages":
+                saw_system_packages = True
+            refs.extend(re.findall(r"([A-Za-z0-9_./+-]+[.]hpkg)", line))
 
     for line in lines:
         if SYSTEM_COPY_MARKER not in line or ".hpkg" not in line:
