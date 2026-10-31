@@ -312,11 +312,20 @@ local_runtime_roots=("$haikuporter_package" "${python314_packages[0]}")
 	printf ';\n'
 } > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
 
-# Rebuild the path-sensitive recipes from the pinned HaikuPorts fork even when
-# bootstrap caches already contain older package revisions.
-for required_port in git perl cmake; do
+# Build path-sensitive recipes from the pinned HaikuPorts fork when the
+# exact locked package is absent or invalid; resume can then reuse verified HPKGs.
+for required_selection in \
+	"git git-2.56.0-2-arm64.hpkg" \
+	"perl perl-5.42.2-4-arm64.hpkg" \
+	"cmake cmake-4.4.4-4-arm64.hpkg"; do
+	read -r required_port required_package <<< "$required_selection"
+	package_path="$GENERATED/download/$required_package"
+	if [ -s "$package_path" ] && "$HOST_TOOLS/package/package" info "$package_path" >/dev/null 2>&1; then
+		echo "Reusing valid pinned ARM64 package $required_package"
+		continue
+	fi
 	echo "Force-building pinned ARM64 port $required_port"
-	if ! build_port "$required_port" "" 0 1; then
+	if ! build_port "$required_port" "$required_package" 0 1; then
 		exit 1
 	fi
 done
@@ -330,6 +339,12 @@ for required_package in \
 	fi
 done
 
+package_plan_log="$WORKPATH/nightly-mmc-package-plan.log"
+if ! "$HOST_JAM" -n -d2 @nightly-mmc >"$package_plan_log" 2>&1; then
+	echo "Could not generate package selection plan: $package_plan_log" >&2
+	tail -n 20 "$package_plan_log"
+	exit 1
+fi
 while ! "$HOST_JAM" -q -d2 @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
@@ -365,7 +380,7 @@ package_manifest="$IMAGE.packages.tsv"
 python3 -B /usr/local/bin/audit-hpkg-paths \
 	--package-tool "$HOST_TOOLS/package/package" \
 	--generated "$GENERATED" \
-	--jam-log "$jam_log" \
+	--jam-log "$package_plan_log" \
 	--manifest "$package_manifest" \
 	--target-arch "$TARGET_ARCH"
 for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4"; do
