@@ -2,7 +2,7 @@
 GIT_BUILDTOOLS=https://github.com/haiku/buildtools.git
 REF_BUILDTOOLS=33d46bf5c300bd34cd07c596431e4545c754ac03
 GIT_HAIKU=https://github.com/enricopesce/Source.git
-REF_HAIKU=2791fcfefa852ffc373e02131dbd1b3428c5648f
+REF_HAIKU=59a4730d94a294acf536290e4224def458098072
 GIT_HAIKUPORTER=https://github.com/enricopesce/haikuporter.git
 REF_HAIKUPORTER=695edc87aa74a3c011f73e1ee4605ec381981868
 GIT_HAIKUPORTS=https://github.com/enricopesce/haikuports.git
