@@ -345,6 +345,9 @@ if [ -s "$IMAGE" ] && ! grep -Fqx "$expected_driver_revision" "$IMAGE.build-info
 	echo "Discarding image without current build provenance before rebuilding"
 	rm -f "$IMAGE"
 fi
+package_selection_file="$WORKPATH/nightly-mmc-system-packages.vars"
+rm -f "$package_selection_file"
+export HAIKU_SYSTEM_PACKAGES_MANIFEST="$package_selection_file"
 while ! "$HOST_JAM" -d2 @nightly-mmc >"$jam_log" 2>&1; do
 	missing_package=""
 	if grep -q 'HAIKU_NO_DOWNLOADS is set' "$jam_log" || grep -Eq "package 'download/[A-Za-z0-9_.+-]+\.hpkg' does not exist" "$jam_log"; then
@@ -376,11 +379,16 @@ done
 
 IMAGE="$GENERATED/haiku-mmc.image"
 if [ ! -s "$IMAGE" ]; then echo "Build completed without expected image: $IMAGE"; exit 1; fi
+if [ ! -s "$package_selection_file" ]; then
+	echo "Jam did not export the resolved system package selection" >&2
+	exit 1
+fi
 package_manifest="$IMAGE.packages.tsv"
 python3 -B /usr/local/bin/audit-hpkg-paths \
 	--package-tool "$HOST_TOOLS/package/package" \
 	--generated "$GENERATED" \
 	--jam-log "$jam_log" \
+	--selection-file "$package_selection_file" \
 	--manifest "$package_manifest" \
 	--target-arch "$TARGET_ARCH"
 for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4"; do

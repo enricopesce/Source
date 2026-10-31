@@ -52,7 +52,7 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def log_package_references(log_path: Path) -> list[str]:
+def log_package_references(log_path: Path, selection_path: Path) -> list[str]:
     lines = log_path.read_text(errors="replace").splitlines()
     refs: list[str] = []
     saw_system_packages = False
@@ -60,7 +60,7 @@ def log_package_references(log_path: Path) -> list[str]:
     for index, line in enumerate(lines):
         variable = None
         for name in ("systemPackages", "otherPackages"):
-            if f'echo "{name}="' in line:
+            if f"echo \"{name}=\"" in line:
                 variable = name
                 break
         if variable is None:
@@ -72,8 +72,15 @@ def log_package_references(log_path: Path) -> list[str]:
             if candidate.startswith("script="):
                 break
             if candidate.startswith("for value in "):
-                refs.extend(re.findall(r'"([^"]+\.hpkg)"', candidate))
+                refs.extend(re.findall(r"\"([^\"]+\\.hpkg)\"", candidate))
                 break
+
+    selection_lines = selection_path.read_text(errors="replace").splitlines()
+    for line in selection_lines:
+        if not line.startswith("systemPackages="):
+            continue
+        saw_system_packages = True
+        refs.extend(re.findall(r"(?<!\\$)([A-Za-z0-9_./+-]+\\.hpkg)", line))
 
     for line in lines:
         if SYSTEM_COPY_MARKER not in line or ".hpkg" not in line:
@@ -84,11 +91,10 @@ def log_package_references(log_path: Path) -> list[str]:
             refs.append(ref)
 
     if not saw_system_packages:
-        raise ValueError("Jam log does not record the systemPackages image selection")
+        raise ValueError("Package selection file does not record systemPackages")
     if not refs:
-        raise ValueError("Jam log contains no selected HPKG files")
+        raise ValueError("No selected HPKG files found in Jam output or selection file")
     return sorted(set(refs))
-
 
 def resolve_package_ref(ref: str, generated: Path, target_arch: str) -> tuple[Path, str]:
     container_prefix = f"/work/{generated.name}/"
