@@ -30,4 +30,6 @@ mkdir -p "$CROSS_SYSROOT/boot/system"
 LD_LIBRARY_PATH="$GENERATED/objects/linux/lib" "$PACKAGE_TOOL" extract -C "$CROSS_SYSROOT/boot/system" "$CROSS_DEVEL_STAGE0"
 test -s "$CROSS_SYSROOT/boot/system/develop/headers/posix/stdlib.h"
 
-HAIKU_PORTER_EXTRA_OPTIONS="--debug" jam -q @bootstrap-raw
+HAIKU_BOOTSTRAP_SOURCES_PROFILE=@bootstrap-raw HAIKU_PORTER_EXTRA_OPTIONS="--debug" jam -q @bootstrap-raw
+# The final nightly profile rebuilds this list after local runtime packages exist.
+rm -f "$GENERATED/objects/haiku/$TARGET_ARCH/packaging/repositories/HaikuPorts-sources-build/package_list"
