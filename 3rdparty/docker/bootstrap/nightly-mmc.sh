@@ -323,16 +323,6 @@ haikuporter_package="$GENERATED/download/haikuporter-1.5.3-2-any.hpkg"
 HAIKU_LOCAL_RUNTIME_PACKAGES_FILE="$GENERATED/local-runtime-packages.jam"
 HAIKU_IMAGE_BASE_PACKAGES="bzip2 file git libiconv libjpeg_turbo libpng16 openssl3 xz_utils zlib zstd"
 export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
-local_runtime_roots=("$haikuporter_package" "${python314_packages[0]}")
-{
-	printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
-	/usr/local/bin/resolve-hpkg-dependencies \
-		"$HOST_TOOLS/package/package" "$PORT_PACKAGES" \
-		"$BOOTSTRAP_PACKAGE_REPOSITORY" -- "${local_runtime_roots[@]}" \
-		| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
-	printf ';\n'
-} > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
-
 # Build path-sensitive recipes from the pinned HaikuPorts fork when the
 # exact locked package is absent or invalid; resume can then reuse verified HPKGs.
 for required_selection in \
@@ -359,6 +349,22 @@ for required_package in \
 		exit 1
 	fi
 done
+
+local_runtime_roots=(
+	"$haikuporter_package"
+	"${python314_packages[0]}"
+	"$GENERATED/download/git-2.56.0-2-arm64.hpkg"
+	"$GENERATED/download/perl-5.42.2-4-arm64.hpkg"
+	"$GENERATED/download/cmake-4.4.4-4-arm64.hpkg"
+)
+{
+	printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
+	/usr/local/bin/resolve-hpkg-dependencies \
+		"$HOST_TOOLS/package/package" "$PORT_PACKAGES" \
+		"$BOOTSTRAP_PACKAGE_REPOSITORY" -- "${local_runtime_roots[@]}" \
+		| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
+	printf ';\n'
+} > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
 
 IMAGE="$GENERATED/haiku-mmc.image"
 expected_driver_revision="build_driver_revision=${BUILD_DRIVER_REV:-unrecorded}"
