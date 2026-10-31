@@ -220,12 +220,13 @@ def main() -> int:
     parser.add_argument("--package-tool", required=True, type=Path)
     parser.add_argument("--generated", required=True, type=Path)
     parser.add_argument("--jam-log", required=True, type=Path)
+    parser.add_argument("--selection-file", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--target-arch", default="arm64")
     args = parser.parse_args()
 
     try:
-        refs = log_package_references(args.jam_log)
+        refs = log_package_references(args.jam_log, args.selection_file)
         records: list[tuple[str, str, str, str]] = []
         failures: list[str] = []
         seen_archives: set[Path] = set()
