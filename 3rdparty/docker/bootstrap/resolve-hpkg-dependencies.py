@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import subprocess
@@ -47,6 +48,14 @@ def is_runtime(path: Path) -> bool:
         or "_debuginfo-" in name
         or name.endswith("-source.hpkg")
     )
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def read_package(tool: Path, path: Path, info_path: Path, env: dict[str, str]) -> Package:
@@ -103,6 +112,7 @@ def main() -> int:
         return 2
     env = os.environ.copy()
     packages: dict[Path, Package] = {}
+    aliases: dict[Path, Path] = {}
     providers: dict[str, list[Package]] = {}
 
     with tempfile.TemporaryDirectory(prefix="haiku-hpkg-info-") as temporary:
@@ -111,23 +121,40 @@ def main() -> int:
             {path for directory in package_dirs for path in directory.glob("*.hpkg") if is_runtime(path)}
         )
         candidates = sorted(set(candidates) | set(root_paths))
+        packages_by_identity: dict[tuple[str, str], list[Package]] = {}
         for index, path in enumerate(candidates):
             package = read_package(tool, path, info_dir / f"{index}.PackageInfo", env)
-            packages[path] = package
-            for provided in package.provides:
-                providers.setdefault(capability(provided), []).append(package)
+            packages_by_identity.setdefault((package.name, package.version), []).append(package)
+
+        explicit_roots = set(root_paths)
+        for identity, copies in sorted(packages_by_identity.items()):
+            if len(copies) > 1:
+                hashes = {sha256_file(package.path) for package in copies}
+                if len(hashes) > 1:
+                    raise ValueError(
+                        "duplicate package identity has different contents: "
+                        f"{identity[0]} {identity[1]}: "
+                        + ", ".join(str(package.path) for package in copies)
+                    )
+            root_copies = [package for package in copies if package.path in explicit_roots]
+            canonical = min(root_copies or copies, key=lambda package: str(package.path))
+            packages[canonical.path] = canonical
+            for package in copies:
+                aliases[package.path] = canonical.path
+            for provided in canonical.provides:
+                providers.setdefault(capability(provided), []).append(canonical)
 
     for choices in providers.values():
         choices.sort(key=package_order, reverse=True)
 
-    missing_roots = [path for path in root_paths if path not in packages]
+    missing_roots = [path for path in root_paths if path not in aliases]
     if missing_roots:
         raise ValueError("Root package(s) were not indexed: " + ", ".join(map(str, missing_roots)))
 
     base_packages = set(os.environ.get("HAIKU_IMAGE_BASE_PACKAGES", "").split())
     included: set[Path] = set()
     unresolved: set[str] = set()
-    pending = [packages[path] for path in root_paths]
+    pending = [packages[aliases[path]] for path in root_paths]
     while pending:
         package = pending.pop()
         if package.path in included or package.name in base_packages:
