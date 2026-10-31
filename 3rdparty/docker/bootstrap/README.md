@@ -97,7 +97,7 @@ the build definition with the update.
 
 Haiku package archive paths are relative to /boot/system. Use the official system directories such as bin/, data/, develop/, and documentation/. Do not include boot/system/ inside an HPKG; Haiku exposes those entries under /boot/system/ when the package is activated. The audit reads every HPKG file list selected by the Jam image rules, checks that entries are relative to /boot/system and use Haiku system roots, rejects staging/build paths, and verifies each package's architecture metadata. It allows Haiku core boot files only in the core packages that define them.
 
-The Haiku fork assigns package architecture value 9 to arm64. The current upstream HPKG format specification does not list arm64 yet, so this architecture metadata is a RenkuOS fork extension. The package file paths still follow the standard HaikuPorter system directory layout.
+The upstream Haiku package architecture header assigns ARM64 value 9. The published HPKG format table still stops at SPARC, so that prose is stale; the generated arm64 metadata matches the current header. This build pins the HaikuPorter and HaikuPorts forks for the package-recipe support that is still being completed. Package file paths follow the standard HaikuPorter system directory layout.
 
 The ARM64 development package selection is defined in
 [DefaultBuildProfiles](../../../build/jam/DefaultBuildProfiles) and included by
