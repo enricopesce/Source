@@ -21,6 +21,26 @@ put_work_bin_last() {
 	done
 	export PATH="$new_path:$WORKPATH/bin"
 }
+sync_pinned_haiku_source() {
+	source /usr/local/share/haiku-bootstrap/sources.lock
+	local destination="$WORKPATH/src/haiku"
+	local current_revision
+	if [ "$(git -C "$destination" remote get-url origin)" != "$GIT_HAIKU" ]; then
+		echo "Haiku checkout origin does not match sources.lock" >&2
+		return 1
+	fi
+	current_revision=$(git -C "$destination" rev-parse HEAD)
+	if [ "$current_revision" = "$REF_HAIKU" ]; then
+		return 0
+	fi
+	if [ -n "$(git -C "$destination" status --porcelain)" ]; then
+		echo "Haiku checkout has local changes; refusing to refresh it" >&2
+		return 1
+	fi
+	git -C "$destination" fetch --force origin "$REF_HAIKU"
+	git -C "$destination" checkout --detach FETCH_HEAD
+}
+
 use_host_jam() {
 	HOST_JAM="$WORKPATH/src/buildtools/jam/bin.linuxx86/jam"
 	if [ ! -x "$HOST_JAM" ]; then
@@ -39,7 +59,7 @@ if [ "${RESUME:-0}" = 1 ]; then
 		exit 1
 	fi
 	echo "Resuming ARM64 build in $WORKPATH/$BUILD_DIR_NAME"
-	prep
+	sync_pinned_haiku_source
 	use_host_jam
 	build-cross-fortran
 else
