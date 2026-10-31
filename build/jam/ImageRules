@@ -111,8 +111,9 @@ actions AddTargetVariableToScript1
 				>> "$script"
 		fi
 	done
-	if [ "$(HAIKU_VARIABLE_NAME)" = systemPackages ] \
-		&& [ -n "$HAIKU_SYSTEM_PACKAGES_MANIFEST" ]; then
+	if [ -n "$HAIKU_SYSTEM_PACKAGES_MANIFEST" ] \
+		&& { [ "$(HAIKU_VARIABLE_NAME)" = systemPackages ] \
+			|| [ "$(HAIKU_VARIABLE_NAME)" = otherPackages ]; }; then
 		cp "$script" "$HAIKU_SYSTEM_PACKAGES_MANIFEST"
 	fi
 }
