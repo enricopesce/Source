@@ -328,7 +328,9 @@ export HAIKU_LOCAL_RUNTIME_PACKAGES_FILE HAIKU_IMAGE_BASE_PACKAGES
 for required_selection in \
 	"git git-2.56.0-2-arm64.hpkg" \
 	"perl perl-5.42.2-4-arm64.hpkg" \
-	"cmake cmake-4.4.4-4-arm64.hpkg"; do
+	"cmake cmake-4.4.4-4-arm64.hpkg" \
+	"gdb gdb-17.2-3-arm64.hpkg" \
+	"ncurses6 ncurses6-6.6-2-arm64.hpkg"; do
 	read -r required_port required_package <<< "$required_selection"
 	package_path="$GENERATED/download/$required_package"
 	if [ -s "$package_path" ] && "$HOST_TOOLS/package/package" info "$package_path" >/dev/null 2>&1; then
@@ -343,7 +345,9 @@ done
 for required_package in \
 	git-2.56.0-2-arm64.hpkg \
 	perl-5.42.2-4-arm64.hpkg \
-	cmake-4.4.4-4-arm64.hpkg; do
+	cmake-4.4.4-4-arm64.hpkg \
+	gdb-17.2-3-arm64.hpkg \
+	ncurses6-6.6-2-arm64.hpkg; do
 	if [ ! -s "$GENERATED/download/$required_package" ]; then
 		echo "Pinned HaikuPorts package was not produced: $required_package" >&2
 		exit 1
@@ -424,7 +428,7 @@ python3 -B /usr/local/bin/audit-hpkg-paths \
 	--selection-file "$package_selection_file" \
 	--manifest "$package_manifest" \
 	--target-arch "$TARGET_ARCH"
-for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4"; do
+for required_selection in "git 2.56.0-2" "perl 5.42.2-4" "cmake 4.4.4-4" "gdb 17.2-3" "ncurses6 6.6-2"; do
 	read -r required_name required_version <<< "$required_selection"
 	if ! awk -F '\t' -v name="$required_name" -v version="$required_version" '$1 == name && $2 == version { found = 1 } END { exit !found }' "$package_manifest"; then
 		echo "Pinned path-fixed package was not selected for the image: $required_name $required_version" >&2

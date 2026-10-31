@@ -183,6 +183,10 @@ def audit_entries(
                 issues.append(f"non-standard boot path: {entry}")
                 continue
 
+        # Mirror HaikuPorter Policy._checkMisplacedDevelopLibraries().
+        if top == "lib" and len(parts) == 2 and parts[1].endswith((".a", ".la")):
+            issues.append(f"development library should be in develop/lib: {entry}")
+
         if any(
             part in STAGING_SEGMENTS
             or re.fullmatch(r"work-[0-9][A-Za-z0-9._+-]*", part)
