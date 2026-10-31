@@ -31,7 +31,7 @@ SYSTEM_DIRECTORIES = {
     "var",
 }
 CORE_HAIKU_ROOT_ENTRIES = {"Deskbar", "Tracker", "runtime_loader", "demos"}
-CORE_HAIKU_BOOT_PATHS = {"first-login", "first_login", "PostInstallScript", "SetupEnvironment"}
+CORE_HAIKU_BOOT_PATHS = {"first_login", "PostInstallScript", "SetupEnvironment"}
 STAGING_SEGMENTS = {
     ".self",
     "arm64-cross-tool-prefix",
