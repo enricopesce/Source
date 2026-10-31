@@ -340,7 +340,7 @@ for required_package in \
 done
 
 package_plan_log="$WORKPATH/nightly-mmc-package-plan.log"
-if ! "$HOST_JAM" -n -d2 @nightly-mmc >"$package_plan_log" 2>&1; then
+if ! "$HOST_JAM" -n -d2 -a @nightly-mmc >"$package_plan_log" 2>&1; then
 	echo "Could not generate package selection plan: $package_plan_log" >&2
 	tail -n 20 "$package_plan_log"
 	exit 1
