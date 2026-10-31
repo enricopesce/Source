@@ -357,14 +357,17 @@ local_runtime_roots=(
 	"$GENERATED/download/perl-5.42.2-4-arm64.hpkg"
 	"$GENERATED/download/cmake-4.4.4-4-arm64.hpkg"
 )
-{
-	printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
-	/usr/local/bin/resolve-hpkg-dependencies \
-		"$HOST_TOOLS/package/package" "$PORT_PACKAGES" \
-		"$BOOTSTRAP_PACKAGE_REPOSITORY" -- "${local_runtime_roots[@]}" \
-		| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
-	printf ';\n'
-} > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
+write_local_runtime_packages() {
+	{
+		printf 'HAIKU_LOCAL_RUNTIME_PACKAGES =\n'
+		/usr/local/bin/resolve-hpkg-dependencies \
+			"$HOST_TOOLS/package/package" "$PORT_PACKAGES" \
+			"$BOOTSTRAP_PACKAGE_REPOSITORY" -- "${local_runtime_roots[@]}" \
+			| while IFS= read -r package_path; do printf '\t%s\n' "$package_path"; done
+		printf ';\n'
+	} > "$HAIKU_LOCAL_RUNTIME_PACKAGES_FILE"
+}
+write_local_runtime_packages
 
 IMAGE="$GENERATED/haiku-mmc.image"
 expected_driver_revision="build_driver_revision=${BUILD_DRIVER_REV:-unrecorded}"
@@ -402,6 +405,9 @@ while ! "$HOST_JAM" -d2 @nightly-mmc >"$jam_log" 2>&1; do
     if ! build_port "$port_name" "$missing_package"; then
         exit 1
     fi
+	# A newly built port can replace a bootstrap dependency with its runtime
+	# package; refresh the dependency closure before Jam retries image creation.
+	write_local_runtime_packages
 done
 
 IMAGE="$GENERATED/haiku-mmc.image"
